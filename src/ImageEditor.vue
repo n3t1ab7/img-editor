@@ -15,9 +15,9 @@
 			<canvas :width="canvasWidth" :height="canvasHeight"></canvas>
 			<div id="mask" :style="maskStyObj" @drop="drop" @dragover="dragover" @click="maskClick">
 				<i class="icon drop-icon" :class="{hide:canPaint}">&#xe624;</i>
-        <textarea :class="{hide:!showTextArea}" :style="textAreaStyObj" class="textarea" :readonly="!contenteditable" @mousedown="textAreaMouseDown" @mouseup="textAreaMouseUp" @dblclick="textAreaDouble" v-model="textAreaText"></textarea>
+        <textarea :class="{hide:!showTextArea}" :style="textAreaStyObj" class="textarea" :readonly="!contenteditable" @mousedown="textAreaMouseDown" @mouseup="textAreaMouseUp" @dblclick="textAreaDouble" v-model="textAreaText" @input="textAreaInput" @keypress="textAreaKeyPress"></textarea>
 			</div>
-		</div>
+		</div>  
 
 	</div>
 </template>
@@ -50,21 +50,6 @@ export default {
       canvasHeight: parseInt(this.height) - 50,
       canvasWidth: parseInt(this.width),
 
-      // init action style
-      textAreaStyObj: {
-        left: '10px',
-        top: '10px',
-        width: '150px',
-        height: '40px',
-        color: '#fff',
-        border: '2px solid #fff',
-        fontSize: '16px',
-        fontFamily: 'sans-serif',
-        textAlign: 'center',
-        lineHeight: '38px',
-        resize:'none'
-      },
-
       // action state
       canPaint: false,
       showTextArea: false,
@@ -72,7 +57,20 @@ export default {
       // action area state
       contenteditable: false,
       canDragTextArea: false,
-      textAreaText: '双击编辑'
+      textAreaText: '',
+      textAreaSingleH: 16,
+
+       // init action style
+      textAreaStyObj: {
+        left: '10px',
+        top: '10px',
+        color: '#fff',
+        width: '0px',
+        height: '0px',
+        fontSize: '0px',
+        fontFamily: 'sans-serif',
+        textAlign: 'center'
+      }
     }
   },
 
@@ -100,6 +98,12 @@ export default {
       if (!this.canPaint) return false
       this.showTextArea = true
       this.textAreaText = '双击编辑'
+      let w = (this.textAreaText.length*this.textAreaSingleH*1.5)
+      if(w<100) w =100
+      this.textAreaStyObj.width = w+'px'
+      this.textAreaStyObj.height = this.textAreaSingleH+10+'px'
+      this.textAreaStyObj.fontSize = this.textAreaSingleH+'px'
+      this.textAreaStyObj.textAlign = 'center'
     },
 
     // action area
@@ -118,10 +122,22 @@ export default {
     },
     
     textAreaDouble(){
-      this.textAreaText = ""
+      this.textAreaText = " "
       this.textAreaStyObj.textAlign = "left"
       this.textAreaStyObj.lineHeight = "normal"
       this.contenteditable = true
+    },
+
+    textAreaKeyPress(ev){
+      if(ev.key == 'Enter') {
+        ev.preventDefault()
+      }
+    },
+
+    textAreaInput(){
+      let w  = ((this.textAreaText).length*this.textAreaSingleH*1.2)
+      if(w<100) w = 100
+      this.textAreaStyObj.width = w+'px'
     },
 
     maskClick(ev) {
@@ -133,7 +149,7 @@ export default {
         ctx.font = this.textAreaStyObj.fontSize + ' ' + this.textAreaStyObj.fontFamily
         ctx.fillText(this.textAreaText, parseInt(this.textAreaStyObj.left), parseInt(this.textAreaStyObj.top) + parseInt(this.textAreaStyObj.fontSize))
         this.showTextArea = false
-        this.textArea.innerText = ""
+        this.textAreaText = ""
       }
     },
 
@@ -259,6 +275,8 @@ export default {
 				position: absolute;
 				background:transparent;
 				border-radius:2px;
+        border: 1.5px solid #fff;
+        resize:none;
 			}
 		}
 	}
