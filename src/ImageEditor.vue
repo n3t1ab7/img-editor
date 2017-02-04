@@ -1,21 +1,24 @@
 <template>
 	<div id="image-editor" :style="outerStyObj">
 
-		<div id="toolbar" style="height:50px">
-			<div id="func">
-				<button @click="inputText"><i class="icon drop-icon">&#xe633;</i></button>
-        <button><i class="icon drop-icon">&#xe600;</i></button>
+		<div class="toolbar" style="height:50px">
+			<div class="func">
+				<button @click="inputText" data-notice="输入文本"><i class="icon">&#xe633;</i></button>
+        <button data-notice="裁剪"><i class="icon">&#xe600;</i></button>
 			</div> 
-			<button id="download" class="main-btn" @click="download">导出</button>
-			<button id="reset" class="main-btn" @click="reset">重置</button>
+			<button class="main-btn download" @click="download">导出</button>
+			<button class="main-btn reset" @click="reset">重置</button>
 		</div>
 
 
-		<div id="panel" :style="panelStyObj">
+		<div class="panel" :style="panelStyObj">
 			<canvas :width="canvasWidth" :height="canvasHeight"></canvas>
-			<div id="mask" :style="maskStyObj" @drop="drop" @dragover="dragover" @click="maskClick">
-				<i class="icon drop-icon" :class="{hide:canPaint}">&#xe624;</i>
-        <textarea :class="{hide:!showTextArea}" :style="textAreaStyObj" class="textarea" :readonly="!contenteditable" @mousedown="textAreaMouseDown" @mouseup="textAreaMouseUp" @dblclick="textAreaDouble" v-model="textAreaText" @input="textAreaInput" @keypress="textAreaKeyPress"></textarea>
+			<div class="mask" :style="maskStyObj" @drop="drop" @dragover="dragover" @click="maskClick">
+        <div :class="{hide:canPaint}" class="drop-notice">
+          <i class="icon drop-icon">&#xe624;</i>
+          <p>拖放图片到此</p>
+        </div>
+        <textarea :class="{hide:!showTextArea,onborder:isTextOnBorder}" :style="textAreaStyObj" class="textarea" :readonly="!contenteditable" @mousedown="textAreaMouseDown" @dblclick="textAreaDouble" v-model="textAreaText" @input="textAreaInput" @keypress="textAreaKeyPress" draggable="false"></textarea>
 			</div>
 		</div>  
 
@@ -49,18 +52,8 @@ export default {
 
       canvasHeight: parseInt(this.height) - 50,
       canvasWidth: parseInt(this.width),
-
-      // action state
-      canPaint: false,
-      showTextArea: false,
-
-      // action area state
-      contenteditable: false,
-      canDragTextArea: false,
-      textAreaText: '',
-      textAreaSingleH: 16,
-
-       // init action style
+       
+      // init action style
       textAreaStyObj: {
         left: '10px',
         top: '10px',
@@ -69,8 +62,21 @@ export default {
         height: '0px',
         fontSize: '0px',
         fontFamily: 'sans-serif',
-        textAlign: 'center'
-      }
+        textAlign: 'center',
+        cursor:'auto'
+      },
+
+      // action state
+      canPaint: false,
+      showTextArea: false,
+
+      // textArea state
+      contenteditable: false,
+      canDragTextArea: false,
+      initTextAreaText: '双击编辑',
+      textAreaText: '',
+      textAreaSingleH: 22,
+      isTextOnBorder:false
     }
   },
 
@@ -97,7 +103,8 @@ export default {
     inputText(ev) {
       if (!this.canPaint) return false
       this.showTextArea = true
-      this.textAreaText = '双击编辑'
+      this.textAreaText = this.initTextAreaText
+      this.textAreaStyObj.cursor = 'pointer'
       let w = (this.textAreaText.length*this.textAreaSingleH*1.5)
       if(w<100) w =100
       this.textAreaStyObj.width = w+'px'
@@ -117,21 +124,16 @@ export default {
       this.textAreaTop = ev.clientY - this.textPos.top
     },
 
-    textAreaMouseUp(ev) {
-      this.canDragTextArea = false
-    },
-    
     textAreaDouble(){
-      this.textAreaText = " "
+      this.textAreaText = ''
+      this.textAreaStyObj.cursor = 'auto'
       this.textAreaStyObj.textAlign = "left"
       this.textAreaStyObj.lineHeight = "normal"
       this.contenteditable = true
     },
 
     textAreaKeyPress(ev){
-      if(ev.key == 'Enter') {
-        ev.preventDefault()
-      }
+      if(ev.key == 'Enter') ev.preventDefault()
     },
 
     textAreaInput(){
@@ -140,22 +142,31 @@ export default {
       this.textAreaStyObj.width = w+'px'
     },
 
+    resetTextArea(){
+      this.showTextArea = false
+      this.textAreaText = ""
+      this.textAreaStyObj.cursor = "auto"
+    },
+    
+    // paint
     maskClick(ev) {
-       if (ev.target.id !== 'mask') return false
-       // textArea
+      if (ev.target.className !== 'mask') return false
+      // textArea
       if (this.showTextArea && this.contenteditable) {
-        let ctx = this.ctx
+        let ctx = this.ctx,
+            left = parseInt(this.textAreaStyObj.left),
+            top = parseInt(this.textAreaStyObj.top) + parseInt(this.textAreaStyObj.fontSize)
         ctx.fillStyle = this.textAreaStyObj.color
         ctx.font = this.textAreaStyObj.fontSize + ' ' + this.textAreaStyObj.fontFamily
-        ctx.fillText(this.textAreaText, parseInt(this.textAreaStyObj.left), parseInt(this.textAreaStyObj.top) + parseInt(this.textAreaStyObj.fontSize))
-        this.showTextArea = false
-        this.textAreaText = ""
+        ctx.fillText(this.textAreaText,left,top )
+        this.resetTextArea()
       }
     },
 
     // user operation
     reset() {
       if (!this.canPaint) return false
+      this.resetTextArea()
       this.ctx.putImageData(this.ctxData, 0, 0)
     },
 
@@ -165,25 +176,49 @@ export default {
   },
 
   mounted() {
-    ['dragleave', 'drop', 'dragenter', 'dragover'].forEach(function(name) {
-      document.addEventListener(name, function(ev) {
-        ev.preventDefault();
-      })
-    })
-    document.addEventListener('mousemove', (ev) => {
+    let d= document;
+
+    ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) =>d.addEventListener(name, (ev) => ev.preventDefault()))
+
+    d.addEventListener('mousemove', (ev) => {
+      let left,top
+      let onABorder
+      let onAnotherBorder
       if (this.canDragTextArea) {
-        let left = ev.clientX - this.canvasPos.left - this.textAreaLeft,
-          top = ev.clientY - this.canvasPos.top - this.textAreaTop
-        this.textAreaStyObj.left = left + 'px'
-        this.textAreaStyObj.top = top + 'px'
+        left = ev.clientX - this.canvasPos.left - this.textAreaLeft
+        top = ev.clientY - this.canvasPos.top - this.textAreaTop
+        if(left>0&&left<this.canvasWidth-parseInt(this.textAreaStyObj.width)){
+           this.textAreaStyObj.left = left+'px'
+           onABorder = false
+        }else{
+           onABorder = true
+        }
+        if(top>0&&top<this.canvasHeight-parseInt(this.textAreaStyObj.height)) {
+           this.textAreaStyObj.top =  top+'px'
+           onAnotherBorder = false
+        }else{
+           onAnotherBorder = true
+        }
+        if(onABorder||onAnotherBorder) {
+          this.isTextOnBorder = true
+        }else{
+          this.isTextOnBorder = false
+        }
       }
     })
+
+    d.addEventListener('mouseup',()=>{
+      this.canDragTextArea = false
+    })
+
     this.textArea = this.$el.getElementsByClassName('textarea')[0]
     this.canvas = this.$el.getElementsByTagName('canvas')[0]
+
     this.canvasPos = {
       left: this.canvas.getBoundingClientRect().left,
       top: this.canvas.getBoundingClientRect().top
     }
+
     this.ctx = this.canvas.getContext('2d')
   }
 }
@@ -203,6 +238,7 @@ export default {
   -moz-osx-font-smoothing: grayscale;
 }
 #image-editor {
+  user-select:none;
 	button {
 		border:none;
 		background: none;
@@ -218,8 +254,9 @@ export default {
 		margin:0;
 		padding:0;
 	}
-	#toolbar {
-		#func {
+	.toolbar {
+    border-bottom:1px solid #ccc;
+		.func {
 			float: left;
 			height: 100%;
       button{
@@ -229,19 +266,13 @@ export default {
         }
       }
 		}
-    #pre {
-      float: right;
-    }
-    #next {
-      float: right;
-    }
-		#download {
+		.download {
 			float: right;
 		}
-		#reset {
+		.reset {
 			float: right;
 		}
-		#download,#reset,#next {
+		.download,.reset {
 			margin-left:10px;
 		}
 		.main-btn {
@@ -254,29 +285,38 @@ export default {
       }
 		}
 	}
-	#panel {
+	.panel {
 		position: relative;
-		canvas,#mask {
+		canvas,.mask {
 			position: absolute;
 			top:0;
 			left:0;
 		}
-		#mask {
+		.mask {
 			z-index: 50;
-			.drop-icon {				
+			.drop-notice {				
 				position: absolute;
 				top:50%;
 				left:50%;
-				font-size: 100px;
+        font-size: 30px;
+        text-align:center;
 				transform:translateX(-50%) translateY(-50%);
 				color:#ada4a4;
+        .drop-icon {
+          font-size: 60px;
+        }
 			}
 			.textarea{
 				position: absolute;
 				background:transparent;
-				border-radius:2px;
-        border: 1.5px solid #fff;
+				border-radius:1px;
+        border: 2px dashed #fff;
         resize:none;
+        outline:none;
+        user-select:none;
+        &.onborder {
+          border-color: red;
+        }
 			}
 		}
 	}
