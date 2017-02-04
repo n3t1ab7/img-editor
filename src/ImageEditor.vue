@@ -238,6 +238,7 @@ export default {
   -moz-osx-font-smoothing: grayscale;
 }
 #image-editor {
+  font-family: "SF Pro SC","SF Pro Text","SF Pro Icons","PingFang SC","Microsoft YaHei","Helvetica Neue","Helvetica","Arial",sans-serif;
   user-select:none;
 	button {
 		border:none;
