@@ -14,11 +14,11 @@
 		<div class="panel" :style="panelStyObj">
 			<canvas :width="canvasWidth" :height="canvasHeight"></canvas>
 			<div class="mask" :style="maskStyObj" @drop="drop" @dragover="dragover" @click="maskClick">
-        <div :class="{hide:canPaint}" class="drop-notice">
+        <div :class="dropNoticeClassObj" class="drop-notice">
           <i class="icon drop-icon">&#xe624;</i>
           <p>拖放图片到此</p>
         </div>
-        <textarea :class="{hide:!showTextArea,onborder:isTextOnBorder}" :style="textAreaStyObj" class="textarea" :readonly="!contenteditable" @mousedown="textAreaMouseDown" @dblclick="textAreaDouble" v-model="textAreaText" @input="textAreaInput" @keypress="textAreaKeyPress" draggable="false"></textarea>
+        <textarea :class="textAreaClassObj" class="textarea" :style="textAreaStyObj" :readonly="!contenteditable" @mousedown="textAreaMouseDown" @dblclick="textAreaDouble" v-model="textAreaText" @input="textAreaInput" @keypress="textAreaKeyPress" draggable="false"></textarea>
 			</div>
 		</div>  
 
@@ -27,6 +27,10 @@
 
 
 <script>
+import {
+  getElemOffset,
+  getPointerToElem
+} from './utils.js'
 export default {
   name: 'image-editor',
 
@@ -34,7 +38,7 @@ export default {
 
   data() {
     return {
-      // init style by props 
+      // init main style 
       outerStyObj: {
         width: this.width,
         height: this.height
@@ -42,17 +46,17 @@ export default {
 
       panelStyObj: {
         width: this.width,
-        height: parseInt(this.height) - 50 + 'px'
+        height: parseFloat(this.height) - 50 + 'px'
       },
 
       maskStyObj: {
         width: this.width,
-        height: parseInt(this.height) - 50 + 'px'
+        height: parseFloat(this.height) - 50 + 'px'
       },
 
-      canvasHeight: parseInt(this.height) - 50,
-      canvasWidth: parseInt(this.width),
-       
+      canvasHeight: parseFloat(this.height) - 50,
+      canvasWidth: parseFloat(this.width),
+
       // init action style
       textAreaStyObj: {
         left: '10px',
@@ -61,9 +65,7 @@ export default {
         width: '0px',
         height: '0px',
         fontSize: '0px',
-        fontFamily: 'sans-serif',
-        textAlign: 'center',
-        cursor:'auto'
+        fontFamily: 'sans-serif'
       },
 
       // action state
@@ -76,7 +78,29 @@ export default {
       initTextAreaText: '双击编辑',
       textAreaText: '',
       textAreaSingleH: 22,
-      isTextOnBorder:false
+      textAreaLeftAlignRatio: 1.1,
+      textAreaCenterAlignRatio: 1.5,
+      textAreaHeightPadding: 10,
+      minTextAreaWidth: 100,
+      isTextAreaBeyond:false
+    }
+  },
+
+  computed: {
+    // class
+    dropNoticeClassObj() {
+      return {
+        hide: this.canPaint
+      }
+    },
+
+    textAreaClassObj() {
+      return {
+        hide: !this.showTextArea,
+        abled: this.contenteditable,
+        disabled: !this.contenteditable,
+        beyond: this.isTextAreaBeyond
+      }
     }
   },
 
@@ -87,10 +111,11 @@ export default {
     },
 
     drop(ev) {
+      let file,imgUrl,img
       ev.preventDefault()
-      let file = ev.dataTransfer.files[0]
-      let imgUrl = URL.createObjectURL(file)
-      let img = new Image()
+      file = ev.dataTransfer.files[0]
+      imgUrl = URL.createObjectURL(file)
+      img = new Image()
       img.onload = (function() {
         this.canPaint = true
         this.ctx.drawImage(img, 0, 0)
@@ -101,64 +126,70 @@ export default {
 
     // trigger action
     inputText(ev) {
+      let w
       if (!this.canPaint) return false
       this.showTextArea = true
       this.textAreaText = this.initTextAreaText
-      this.textAreaStyObj.cursor = 'pointer'
-      let w = (this.textAreaText.length*this.textAreaSingleH*1.5)
-      if(w<100) w =100
-      this.textAreaStyObj.width = w+'px'
-      this.textAreaStyObj.height = this.textAreaSingleH+10+'px'
-      this.textAreaStyObj.fontSize = this.textAreaSingleH+'px'
-      this.textAreaStyObj.textAlign = 'center'
+      w = (this.textAreaText.length * this.textAreaSingleH * this.textAreaCenterAlignRatio)
+      if (w < this.minTextAreaWidth) w = this.minTextAreaWidth
+      this.textAreaStyObj.width = w + 'px'
+      this.textAreaStyObj.height = this.textAreaSingleH + this.textAreaHeightPadding + 'px'
+      this.textAreaStyObj.fontSize = this.textAreaSingleH + 'px'
     },
 
     // action area
     textAreaMouseDown(ev) {
+      let pointerToTextArea
       this.canDragTextArea = true
-      this.textPos = {
-        left: this.textArea.getBoundingClientRect().left,
-        top: this.textArea.getBoundingClientRect().top,
-      }
-      this.textAreaLeft = ev.clientX - this.textPos.left
-      this.textAreaTop = ev.clientY - this.textPos.top
+      pointerToTextArea = getPointerToElem(ev, this.textArea)
+      this.textAreaLeft = pointerToTextArea.left
+      this.textAreaTop = pointerToTextArea.top
     },
 
-    textAreaDouble(){
-      this.textAreaText = ''
-      this.textAreaStyObj.cursor = 'auto'
-      this.textAreaStyObj.textAlign = "left"
-      this.textAreaStyObj.lineHeight = "normal"
+    textAreaDouble() {
       this.contenteditable = true
+      this.textAreaText = ''
     },
 
-    textAreaKeyPress(ev){
-      if(ev.key == 'Enter') ev.preventDefault()
+    textAreaKeyPress(ev) {
+      if (ev.key == 'Enter') ev.preventDefault()
     },
 
-    textAreaInput(){
-      let w  = ((this.textAreaText).length*this.textAreaSingleH*1.2)
-      if(w<100) w = 100
-      this.textAreaStyObj.width = w+'px'
+    textAreaInput() {
+      let w,beyond,countWillRemove
+      w = ((this.textAreaText).length * this.textAreaSingleH * this.textAreaLeftAlignRatio)
+      if (w < this.minTextAreaWidth) w = this.minTextAreaWidth
+      this.textAreaStyObj.width = w + 'px'
+      beyond = getElemOffset(this.canvas,this.textArea).left+parseFloat(this.textAreaStyObj.width)-this.canvasWidth
+      if(beyond>0){
+        countWillRemove = Math.floor(( beyond/(this.textAreaSingleH*this.textAreaLeftAlignRatio)))
+        this.textAreaText = this.textAreaText.slice(0,this.textAreaText.length-countWillRemove-1)
+        this.textAreaStyObj.width = parseFloat(this.textAreaStyObj.width) - this.textAreaSingleH*this.textAreaLeftAlignRatio+'px'
+        this.isTextAreaBeyond = true
+      }else {
+         this.isTextAreaBeyond = false
+      }
     },
 
-    resetTextArea(){
+    resetTextArea() {
       this.showTextArea = false
+      this.contenteditable = false
+      this.isTextAreaBeyond = false
       this.textAreaText = ""
-      this.textAreaStyObj.cursor = "auto"
     },
-    
+
     // paint
     maskClick(ev) {
+      let ctx,left,top
       if (ev.target.className !== 'mask') return false
-      // textArea
+        // textArea
       if (this.showTextArea && this.contenteditable) {
-        let ctx = this.ctx,
-            left = parseInt(this.textAreaStyObj.left),
-            top = parseInt(this.textAreaStyObj.top) + parseInt(this.textAreaStyObj.fontSize)
+        ctx = this.ctx,
+        left = parseFloat(this.textAreaStyObj.left),
+        top = parseFloat(this.textAreaStyObj.top) + parseFloat(this.textAreaStyObj.fontSize)
         ctx.fillStyle = this.textAreaStyObj.color
         ctx.font = this.textAreaStyObj.fontSize + ' ' + this.textAreaStyObj.fontFamily
-        ctx.fillText(this.textAreaText,left,top )
+        ctx.fillText(this.textAreaText, left, top)
         this.resetTextArea()
       }
     },
@@ -176,49 +207,34 @@ export default {
   },
 
   mounted() {
-    let d= document;
+    let d = document
+    let offset,left,top
 
-    ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) =>d.addEventListener(name, (ev) => ev.preventDefault()))
+    ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) => d.addEventListener(name, (ev) => ev.preventDefault()))
 
     d.addEventListener('mousemove', (ev) => {
-      let left,top
-      let onABorder
-      let onAnotherBorder
       if (this.canDragTextArea) {
-        left = ev.clientX - this.canvasPos.left - this.textAreaLeft
-        top = ev.clientY - this.canvasPos.top - this.textAreaTop
-        if(left>0&&left<this.canvasWidth-parseInt(this.textAreaStyObj.width)){
-           this.textAreaStyObj.left = left+'px'
-           onABorder = false
-        }else{
-           onABorder = true
+        offset = getPointerToElem(ev, this.canvas)
+        left = offset.left - this.textAreaLeft
+        top = offset.top - this.textAreaTop
+        /*
+        if (left > 0 && left < this.canvasWidth - parseFloat(this.textAreaStyObj.width)) {
+          this.textAreaStyObj.left = left + 'px'
         }
-        if(top>0&&top<this.canvasHeight-parseInt(this.textAreaStyObj.height)) {
-           this.textAreaStyObj.top =  top+'px'
-           onAnotherBorder = false
-        }else{
-           onAnotherBorder = true
-        }
-        if(onABorder||onAnotherBorder) {
-          this.isTextOnBorder = true
-        }else{
-          this.isTextOnBorder = false
-        }
+        if (top > 0 && top < this.canvasHeight - parseFloat(this.textAreaStyObj.height)) { 
+          this.textAreaStyObj.top = top + 'px'
+        }*/
+        this.textAreaStyObj.left = left + 'px'
+        this.textAreaStyObj.top = top + 'px'
       }
     })
 
-    d.addEventListener('mouseup',()=>{
+    d.addEventListener('mouseup', () => {
       this.canDragTextArea = false
     })
 
     this.textArea = this.$el.getElementsByClassName('textarea')[0]
     this.canvas = this.$el.getElementsByTagName('canvas')[0]
-
-    this.canvasPos = {
-      left: this.canvas.getBoundingClientRect().left,
-      top: this.canvas.getBoundingClientRect().top
-    }
-
     this.ctx = this.canvas.getContext('2d')
   }
 }
@@ -309,12 +325,24 @@ export default {
 			}
 			.textarea{
 				position: absolute;
+        overflow:hidden;
 				background:transparent;
 				border-radius:1px;
         border: 2px dashed #fff;
         resize:none;
         outline:none;
         user-select:none;
+        &.beyond {
+          border-color:red;
+        }
+        &.disabled {
+          text-align: center;
+          cursor: pointer;
+        }
+        &.abled {
+          text-align:left;
+          cursor: auto;
+        }
         &.onborder {
           border-color: red;
         }
