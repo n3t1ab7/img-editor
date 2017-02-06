@@ -1,7 +1,7 @@
 <template>
 	<div id="image-editor" :style="outerStyObj">
 
-		<div class="toolbar" style="height:40px">
+		<div class="toolbar" style="height:20px">
 			<div class="menu">
 				<button @click="inputText"><i class="icon">&#xe633;</i></button>
         <button><i class="icon">&#xe600;</i></button>
@@ -9,9 +9,9 @@
 			<button class="main-btn download" @click="download">导出</button>
 			<button class="main-btn reset" @click="reset">重置</button>
 		</div>
-    <div class="toolbar text-enhance" style="height:40px">
-      <div class="menu"> 
-
+    <div class="toolbar enhance text-enhance" style="height:30px" :class="textEnhanceClassObj">
+      <div class="menu">
+        <label class="font-size-input">字号<input type="text" @keydown="changeFontSize"/></label>
       </div> 
     </div>
 
@@ -36,10 +36,15 @@ import {
   getElemOffset,
   getPointerToElem
 } from './utils.js'
+import select from './components/select.vue'
 export default {
   name: 'image-editor',
 
   props: ['width', 'height'],
+
+  components: {
+    'select-list':select
+  },
 
   data() {
     return {
@@ -87,7 +92,7 @@ export default {
       textAreaCenterAlignRatio: 1.5,
       textAreaHeightPadding: 10,
       minTextAreaWidth: 100,
-      isTextAreaBeyond:false
+      isTextAreaBeyond:false,
     }
   },
 
@@ -105,6 +110,12 @@ export default {
         abled: this.contenteditable,
         disabled: !this.contenteditable,
         beyond: this.isTextAreaBeyond
+      }
+    },
+
+    textEnhanceClassObj(){
+      return {
+        hide:!this.showTextArea
       }
     }
   },
@@ -181,6 +192,12 @@ export default {
       this.contenteditable = false
       this.isTextAreaBeyond = false
       this.textAreaText = ""
+    },
+
+    // textAreaBar
+    changeFontSize(ev){
+      if(ev.code == 'ArrowUp') {
+      }
     },
 
     // paint
@@ -277,6 +294,7 @@ export default {
 		padding:0;
 	}
 	.toolbar {
+    margin-bottom:15px;
 		.menu {
 			float: left;
 			height: 100%;
@@ -305,7 +323,28 @@ export default {
         background:#4db3ff;
       }
 		}
+    &.enhance {
+      background: #f5f5f5;
+      font-size: 13px;
+      border-radius:4px;
+    }
 	}
+  .toolbar.text-enhance {
+    .font-size-input {
+      display:block;
+      line-height: 30px;
+      input {
+        text-align:center;
+        width: 30px;
+        height: 26px;
+        font-size: 13px;
+        border-radius:2px;
+        border:1px solid #f5f7f9;
+        outline:none;
+        margin-left:5px;
+      }
+    }
+  }
 	.panel {
 		position: relative;
 		canvas,.mask {
