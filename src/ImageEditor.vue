@@ -1,14 +1,19 @@
 <template>
 	<div id="image-editor" :style="outerStyObj">
 
-		<div class="toolbar" style="height:50px">
-			<div class="func">
-				<button @click="inputText" data-notice="输入文本"><i class="icon">&#xe633;</i></button>
-        <button data-notice="裁剪"><i class="icon">&#xe600;</i></button>
+		<div class="toolbar" style="height:40px">
+			<div class="menu">
+				<button @click="inputText"><i class="icon">&#xe633;</i></button>
+        <button><i class="icon">&#xe600;</i></button>
 			</div> 
 			<button class="main-btn download" @click="download">导出</button>
 			<button class="main-btn reset" @click="reset">重置</button>
 		</div>
+    <div class="toolbar text-enhance" style="height:40px">
+      <div class="menu"> 
+
+      </div> 
+    </div>
 
 
 		<div class="panel" :style="panelStyObj">
@@ -46,15 +51,15 @@ export default {
 
       panelStyObj: {
         width: this.width,
-        height: parseFloat(this.height) - 50 + 'px'
+        height: parseFloat(this.height) - 80 + 'px'
       },
 
       maskStyObj: {
         width: this.width,
-        height: parseFloat(this.height) - 50 + 'px'
+        height: parseFloat(this.height) - 80 + 'px'
       },
 
-      canvasHeight: parseFloat(this.height) - 50,
+      canvasHeight: parseFloat(this.height) - 80,
       canvasWidth: parseFloat(this.width),
 
       // init action style
@@ -272,8 +277,7 @@ export default {
 		padding:0;
 	}
 	.toolbar {
-    border-bottom:1px solid #ccc;
-		.func {
+		.menu {
 			float: left;
 			height: 100%;
       button{
