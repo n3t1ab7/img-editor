@@ -1,20 +1,11 @@
 <template>
   <div id="image-editor" :style="outerStyObj">
     
-    <div class="toolbar-wrapper" style="height:70px;margin-bottom:10px;">
-      <div class="toolbar" style="height:30px;margin-bottom:10px">
-        <div class="menu">
-          <button @click="toggleInputText"><i class="icon">&#xe633;</i></button>
-         <button><i class="icon">&#xe600;</i></button>
-       </div> 
-       <button class="main-btn download" @click="download">导出</button>
-       <button class="main-btn reset" @click="reset">重置</button>
-     </div>
-
+    <div class="toolbar-wrapper" :style="toolWrapperSty">
+    <funcbar :sty='funcStyle' @toggleTextArea="toggleInputText" @download="download" @reset="reset"></funcbar>
     <div class="toolbar enhance text-enhance" style="height:30px" :class="textEnhanceClassObj">
       <div class="menu">
-        <input type="text" readonly :value="textAreaColor" @click="toggleColorPicker" :style="colorInputStyObj" class="color-picker-input"
-        />
+        <input type="text" :value="colors.hex" @click="toggleColorPicker" :style="colorInputStyObj" class="color-picker-input"/>
         <div class="color-picker" :class="colorPickerClassObj">
           <color-picker v-model="colors" @change-color="onColorChange"></color-picker>
         </div>
@@ -48,12 +39,14 @@ import {
   getPointerToElem,
   computeTextAreaW
 } from './utils.js'
+import funcbar from './func.vue'
 export default {
   name: 'image-editor',
 
   props: ['width', 'height'],
   components: {
-    'color-picker': Chrome
+    'color-picker': Chrome,
+    funcbar:funcbar
   },
   data() {
     return {
@@ -73,6 +66,16 @@ export default {
         height: parseFloat(this.height) - 80 + 'px'
       },
 
+      toolWrapperSty:{
+        height:'70px',
+        marginBottom:'10px'
+      },
+
+      funcStyle:{
+        height:30,
+        marginBottom:10
+      },
+
       canvasHeight: parseFloat(this.height) - 80,
       canvasWidth: parseFloat(this.width),
 
@@ -80,7 +83,6 @@ export default {
       textAreaLeft: 10,
       textAreaTop: 10,
       textAreaW: 0,
-      textAreaColor: '#fff',
       textAreaFz: 22,
       textAreaFm: 'sans-serif',
       colors:{
@@ -232,7 +234,6 @@ export default {
       this.textAreaLeft = 10
       this.textAreaTop = 10
       this.colors.hex = '#fff'
-      this.textAreaColor = '#fff'
       this.textAreaFz = 22
       this.textAreaFm = 'sans-serif'
       this.showColorPicker = false
@@ -311,7 +312,6 @@ export default {
   font-family: 'icon';
   src: url('./assert/iconfont.ttf');
 }
-
 .icon {
   font-family: "icon" !important;
   font-size: 16px;
@@ -320,88 +320,62 @@ export default {
   -webkit-text-stroke-width: 0.2px;
   -moz-osx-font-smoothing: grayscale;
 }
+.main-btn {
+  background: #20a0ff;
+  color: #fff;
+  border-radius: 4px;
+  padding: 5px 15px;
 
+  &:hover {
+    background: #4db3ff;
+  }
+}
+button {
+  border: none;
+  cursor: pointer;
+  outline: none;
+  box-sizing: border-box;
+}
+input {
+  outline: none;
+}
+.hide {
+  display: none;
+}
+.toolbar {
+  .menu {
+    float: left;
+    height: 100%;
+
+    button {
+      margin-right: 5px;
+
+      &:hover {
+        color: #555;
+      }
+    }
+  }
+}
 #image-editor {
   font-family: "SF Pro SC", "SF Pro Text", "SF Pro Icons", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
   user-select: none;
   position: relative;
-  
-  button {
-    border: none;
-    background: none;
-    cursor: pointer;
-    outline: none;
-    box-sizing:border-box;
-  }
-
-  input {
-    outline:none;
-  }
-
-  .hide {
-    display: none;
-  }
-
   margin: 20px auto;
 
   .toolbar-wrapper {
-    .toolbar {
-      .menu {
-        float: left;
-        height: 100%;
-
-        button {
-          margin-right: 5px;
-
-          &:hover {
-            color: #555;
-          }
-
-        }
-
-      }
-
-      .download {
-        float: right;
-      }
-
-      .reset {
-        float: right;
-      }
-
-      .download,
-      .reset {
-        margin-left: 10px;
-      }
-
-      .main-btn {
-        background: #20a0ff;
-        color: #fff;
-        border-radius: 4px;
-        padding: 5px 15px;
-
-        &:hover {
-          background: #4db3ff;
-        }
-
-      }
-
-      &.enhance {
-        background: #f5f5f5;
-        font-size: 13px;
-        border-radius: 4px;
-      }
-
+    .toolbar.enhance {
+      background: #f5f5f5;
+      font-size: 13px;
+      border-radius: 4px;
     }
-
     .toolbar.text-enhance {
       .menu {
         line-height: 30px;
       }
       .color-picker-input {
         width: 30px;
-        border:1px solid #ccc;
-        text-align:center;
+        border: 1px solid #ccc;
+        text-align: center;
       }
       .color-picker {
         position: absolute;
@@ -409,21 +383,19 @@ export default {
       }
     }
   }
-
   .panel {
     position: relative;
+
     * {
-       box-sizing: border-box;
-       padding: 0;
-       margin:0;
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
     }
-    canvas,
-    .mask {
+    canvas, .mask {
       position: absolute;
       top: 0;
       left: 0;
     }
-
     .mask {
       z-index: 50;
 
@@ -439,9 +411,7 @@ export default {
         .drop-icon {
           font-size: 60px;
         }
-
       }
-
       .textarea {
         position: absolute;
         overflow: hidden;
@@ -455,26 +425,19 @@ export default {
         &.beyond {
           border-color: red;
         }
-
         &.disabled {
           text-align: center;
           cursor: pointer;
         }
-
         &.abled {
           text-align: left;
           cursor: auto;
         }
-
         &.onborder {
           border-color: red;
         }
-
       }
-
     }
-
   }
-
 }
 </style>
