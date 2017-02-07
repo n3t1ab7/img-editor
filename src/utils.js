@@ -31,8 +31,14 @@ let getPointerToElem = function(ev, elem) {
 	}
 }
 
+let computeTextAreaW = function(text,size,ratio,min){
+	let result = text.length*size*ratio
+	return result>min?result:min
+}
+
 
 export {
 	getElemOffset,
-	getPointerToElem
+	getPointerToElem,
+	computeTextAreaW
 }

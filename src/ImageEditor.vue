@@ -1,20 +1,20 @@
 <template>
 	<div id="image-editor" :style="outerStyObj">
-
-		<div class="toolbar" style="height:20px">
-			<div class="menu">
-				<button @click="inputText"><i class="icon">&#xe633;</i></button>
-        <button><i class="icon">&#xe600;</i></button>
-			</div> 
-			<button class="main-btn download" @click="download">导出</button>
-			<button class="main-btn reset" @click="reset">重置</button>
-		</div>
-    <div class="toolbar enhance text-enhance" style="height:30px" :class="textEnhanceClassObj">
-      <div class="menu">
-        <label class="font-size-input">字号<input type="text" @keydown="changeFontSize"/></label>
-      </div> 
+    
+    <div class="toolbar-wrapper" style="height:50px;margin-bottom:20px;">
+      <div class="toolbar" style="height:20px;margin-bottom:10px">
+        <div class="menu">
+          <button @click="inputText"><i class="icon">&#xe633;</i></button>
+         <button><i class="icon">&#xe600;</i></button>
+       </div> 
+       <button class="main-btn download" @click="download">导出</button>
+       <button class="main-btn reset" @click="reset">重置</button>
+     </div>
+      <div class="toolbar enhance text-enhance" style="height:30px" :class="textEnhanceClassObj">
+        <div class="menu">
+        </div> 
+      </div>
     </div>
-
 
 		<div class="panel" :style="panelStyObj">
 			<canvas :width="canvasWidth" :height="canvasHeight"></canvas>
@@ -23,7 +23,7 @@
           <i class="icon drop-icon">&#xe624;</i>
           <p>拖放图片到此</p>
         </div>
-        <textarea :class="textAreaClassObj" class="textarea" :style="textAreaStyObj" :readonly="!contenteditable" @mousedown="textAreaMouseDown" @dblclick="textAreaDouble" v-model="textAreaText" @input="textAreaInput" @keypress="textAreaKeyPress" draggable="false"></textarea>
+        <textarea :class="textAreaClassObj" class="textarea" :style="textAreaStyObj" :readonly="!contenteditable" @mousedown="textAreaMouseDown" @dblclick="textAreaDouble" @input="textAreaInput" @keypress="textAreaKeyPress" draggable="false" v-model="textAreaText"></textarea>
 			</div>
 		</div>  
 
@@ -34,18 +34,14 @@
 <script>
 import {
   getElemOffset,
-  getPointerToElem
+  getPointerToElem,
+  computeTextAreaW
 } from './utils.js'
-import select from './components/select.vue'
 export default {
   name: 'image-editor',
 
   props: ['width', 'height'],
-
-  components: {
-    'select-list':select
-  },
-
+  
   data() {
     return {
       // init main style 
@@ -67,16 +63,13 @@ export default {
       canvasHeight: parseFloat(this.height) - 80,
       canvasWidth: parseFloat(this.width),
 
-      // init action style
-      textAreaStyObj: {
-        left: '10px',
-        top: '10px',
-        color: '#fff',
-        width: '0px',
-        height: '0px',
-        fontSize: '0px',
-        fontFamily: 'sans-serif'
-      },
+      // textArea style
+      textAreaLeft : 10,
+      textAreaTop:  10,
+      textAreaW: 0,
+      textAreaColor: '#fff',
+      textAreaFz: 22,
+      textAreaFm:'sans-serif',
 
       // action state
       canPaint: false,
@@ -87,23 +80,36 @@ export default {
       canDragTextArea: false,
       initTextAreaText: '双击编辑',
       textAreaText: '',
-      textAreaSingleH: 22,
       textAreaLeftAlignRatio: 1.1,
       textAreaCenterAlignRatio: 1.5,
+      textAreaCurrentAlignRatio:1,
       textAreaHeightPadding: 10,
       minTextAreaWidth: 100,
       isTextAreaBeyond:false,
+      pointerToTextArea:null,
     }
   },
 
   computed: {
+    // style 
+    textAreaStyObj(){
+      return {
+        left:this.textAreaLeft+'px',
+        top:this.textAreaTop+'px',
+        color:this.textAreaColor,
+        width:this.textAreaW+'px',
+        height:parseFloat(this.textAreaFz) + this.textAreaHeightPadding+'px',
+        fontSize:this.textAreaFz+'px',
+        fontFamily:this.textAreaFm
+      }
+    },
     // class
     dropNoticeClassObj() {
       return {
         hide: this.canPaint
       }
     },
-
+   
     textAreaClassObj() {
       return {
         hide: !this.showTextArea,
@@ -142,29 +148,24 @@ export default {
 
     // trigger action
     inputText(ev) {
-      let w
       if (!this.canPaint) return false
       this.showTextArea = true
       this.textAreaText = this.initTextAreaText
-      w = (this.textAreaText.length * this.textAreaSingleH * this.textAreaCenterAlignRatio)
-      if (w < this.minTextAreaWidth) w = this.minTextAreaWidth
-      this.textAreaStyObj.width = w + 'px'
-      this.textAreaStyObj.height = this.textAreaSingleH + this.textAreaHeightPadding + 'px'
-      this.textAreaStyObj.fontSize = this.textAreaSingleH + 'px'
+      this.textAreaCurrentAlignRatio = this.textAreaCenterAlignRatio
+      this.textAreaW =computeTextAreaW(this.textAreaText,this.textAreaFz,this.textAreaCurrentAlignRatio,this.minTextAreaWidth)
     },
 
     // action area
     textAreaMouseDown(ev) {
-      let pointerToTextArea
       this.canDragTextArea = true
-      pointerToTextArea = getPointerToElem(ev, this.textArea)
-      this.textAreaLeft = pointerToTextArea.left
-      this.textAreaTop = pointerToTextArea.top
+      this.pointerToTextArea = getPointerToElem(ev, this.textArea)
     },
 
     textAreaDouble() {
       this.contenteditable = true
       this.textAreaText = ''
+      this.textAreaCurrentAlignRatio = this.textAreaLeftAlignRatio
+      this.textAreaW =computeTextAreaW(this.textAreaText,this.textAreaFz,this.textAreaCurrentAlignRatio,this.minTextAreaWidth)
     },
 
     textAreaKeyPress(ev) {
@@ -172,15 +173,14 @@ export default {
     },
 
     textAreaInput() {
-      let w,beyond,countWillRemove
-      w = ((this.textAreaText).length * this.textAreaSingleH * this.textAreaLeftAlignRatio)
-      if (w < this.minTextAreaWidth) w = this.minTextAreaWidth
-      this.textAreaStyObj.width = w + 'px'
-      beyond = getElemOffset(this.canvas,this.textArea).left+parseFloat(this.textAreaStyObj.width)-this.canvasWidth
+      let beyond,countWillRemove
+      this.textAreaCurrentAlignRatio = this.textAreaLeftAlignRatio
+      this.textAreaW = computeTextAreaW(this.textAreaText,this.textAreaFz,this.textAreaCurrentAlignRatio,this.minTextAreaWidth)
+      beyond = getElemOffset(this.canvas,this.textArea).left+this.textAreaW-this.canvasWidth
       if(beyond>0){
-        countWillRemove = Math.floor(( beyond/(this.textAreaSingleH*this.textAreaLeftAlignRatio)))
+        countWillRemove = Math.floor(( beyond/(parseFloat(this.textAreaFz)*this.textAreaCurrentAlignRatio)))
         this.textAreaText = this.textAreaText.slice(0,this.textAreaText.length-countWillRemove-1)
-        this.textAreaStyObj.width = parseFloat(this.textAreaStyObj.width) - this.textAreaSingleH*this.textAreaLeftAlignRatio+'px'
+        this.textAreaW = this.textAreaW - parseFloat(this.textAreaFz)*this.textAreaCurrentAlignRatio
         this.isTextAreaBeyond = true
       }else {
          this.isTextAreaBeyond = false
@@ -192,12 +192,7 @@ export default {
       this.contenteditable = false
       this.isTextAreaBeyond = false
       this.textAreaText = ""
-    },
-
-    // textAreaBar
-    changeFontSize(ev){
-      if(ev.code == 'ArrowUp') {
-      }
+      this.textAreaCurrentAlignRatio = 1
     },
 
     // paint
@@ -207,10 +202,10 @@ export default {
         // textArea
       if (this.showTextArea && this.contenteditable) {
         ctx = this.ctx,
-        left = parseFloat(this.textAreaStyObj.left),
-        top = parseFloat(this.textAreaStyObj.top) + parseFloat(this.textAreaStyObj.fontSize)
-        ctx.fillStyle = this.textAreaStyObj.color
-        ctx.font = this.textAreaStyObj.fontSize + ' ' + this.textAreaStyObj.fontFamily
+        left = this.textAreaLeft,
+        top = this.textAreaTop + parseFloat(this.textAreaFz)
+        ctx.fillStyle = this.textAreaColor
+        ctx.font = this.textAreaFz + 'px ' + this.textAreaFm
         ctx.fillText(this.textAreaText, left, top)
         this.resetTextArea()
       }
@@ -237,17 +232,10 @@ export default {
     d.addEventListener('mousemove', (ev) => {
       if (this.canDragTextArea) {
         offset = getPointerToElem(ev, this.canvas)
-        left = offset.left - this.textAreaLeft
-        top = offset.top - this.textAreaTop
-        /*
-        if (left > 0 && left < this.canvasWidth - parseFloat(this.textAreaStyObj.width)) {
-          this.textAreaStyObj.left = left + 'px'
-        }
-        if (top > 0 && top < this.canvasHeight - parseFloat(this.textAreaStyObj.height)) { 
-          this.textAreaStyObj.top = top + 'px'
-        }*/
-        this.textAreaStyObj.left = left + 'px'
-        this.textAreaStyObj.top = top + 'px'
+        left = offset.left - this.pointerToTextArea.left
+        top = offset.top - this.pointerToTextArea.top
+        this.textAreaLeft = left
+        this.textAreaTop = top
       }
     })
 
@@ -268,129 +256,141 @@ export default {
   font-family: 'icon';
   src: url('./assert/iconfont.ttf');
 }
-.icon{
-  font-family:"icon" !important;
-  font-size:16px;font-style:normal;
+.icon {
+  font-family: "icon" !important;
+  font-size: 16px;
+  font-style: normal;
   -webkit-font-smoothing: antialiased;
   -webkit-text-stroke-width: 0.2px;
   -moz-osx-font-smoothing: grayscale;
 }
 #image-editor {
-  font-family: "SF Pro SC","SF Pro Text","SF Pro Icons","PingFang SC","Microsoft YaHei","Helvetica Neue","Helvetica","Arial",sans-serif;
-  user-select:none;
-	button {
-		border:none;
-		background: none;
-		cursor: pointer;
-		outline:none;
-	}
-	.hide {
-		display:none;
-	}
-	margin:20px auto;
-	* {
-		box-sizing: border-box;
-		margin:0;
-		padding:0;
-	}
-	.toolbar {
-    margin-bottom:15px;
-		.menu {
-			float: left;
-			height: 100%;
-      button{
-        margin-right:5px;
-        &:hover {
-          color:#555;    
+  font-family: "SF Pro SC", "SF Pro Text", "SF Pro Icons", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  user-select: none;
+
+  button {
+    border: none;
+    background: none;
+    cursor: pointer;
+    outline: none;
+  }
+  .hide {
+    display: none;
+  }
+  margin: 20px auto;
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  .toolbar-wrapper {
+    .toolbar {
+      .menu {
+        float: left;
+        height: 100%;
+
+        button {
+          margin-right: 5px;
+
+          &:hover {
+            color: #555;
+          }
         }
       }
-		}
-		.download {
-			float: right;
-		}
-		.reset {
-			float: right;
-		}
-		.download,.reset {
-			margin-left:10px;
-		}
-		.main-btn {
-			background: #20a0ff;
-			color:#fff;
-			border-radius:4px;
-      padding:5px 15px;
-      &:hover {
-        background:#4db3ff;
+      .download {
+        float: right;
       }
-		}
-    &.enhance {
-      background: #f5f5f5;
-      font-size: 13px;
-      border-radius:4px;
-    }
-	}
-  .toolbar.text-enhance {
-    .font-size-input {
-      display:block;
-      line-height: 30px;
-      input {
-        text-align:center;
-        width: 30px;
-        height: 26px;
+      .reset {
+        float: right;
+      }
+      .download, .reset {
+        margin-left: 10px;
+      }
+      .main-btn {
+        background: #20a0ff;
+        color: #fff;
+        border-radius: 4px;
+        padding: 5px 15px;
+
+        &:hover {
+          background: #4db3ff;
+        }
+      }
+      &.enhance {
+        background: #f5f5f5;
         font-size: 13px;
-        border-radius:2px;
-        border:1px solid #f5f7f9;
-        outline:none;
-        margin-left:5px;
+        border-radius: 4px;
+      }
+    }
+    .toolbar.text-enhance {
+      .font-size-input {
+        display: block;
+        line-height: 30px;
+
+        input {
+          text-align: center;
+          width: 30px;
+          height: 26px;
+          font-size: 13px;
+          border-radius: 2px;
+          border: 1px solid #f5f7f9;
+          outline: none;
+          margin-left: 5px;
+        }
       }
     }
   }
-	.panel {
-		position: relative;
-		canvas,.mask {
-			position: absolute;
-			top:0;
-			left:0;
-		}
-		.mask {
-			z-index: 50;
-			.drop-notice {				
-				position: absolute;
-				top:50%;
-				left:50%;
+  .panel {
+    position: relative;
+
+    canvas, .mask {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .mask {
+      z-index: 50;
+
+      .drop-notice {
+        position: absolute;
+        top: 50%;
+        left: 50%;
         font-size: 30px;
-        text-align:center;
-				transform:translateX(-50%) translateY(-50%);
-				color:#ada4a4;
+        text-align: center;
+        transform: translateX(-50%) translateY(-50%);
+        color: #ada4a4;
+
         .drop-icon {
           font-size: 60px;
         }
-			}
-			.textarea{
-				position: absolute;
-        overflow:hidden;
-				background:transparent;
-				border-radius:1px;
+      }
+      .textarea {
+        position: absolute;
+        overflow: hidden;
+        background: transparent;
+        border-radius: 1px;
         border: 2px dashed #fff;
-        resize:none;
-        outline:none;
-        user-select:none;
+        resize: none;
+        outline: none;
+        user-select: none;
+
         &.beyond {
-          border-color:red;
+          border-color: red;
         }
         &.disabled {
           text-align: center;
           cursor: pointer;
         }
         &.abled {
-          text-align:left;
+          text-align: left;
           cursor: auto;
         }
         &.onborder {
           border-color: red;
         }
-			}
-		}
-	}
+      }
+    }
+  }
 }
 </style>
