@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "fabric": "^1.7.3",
-    "vue": "^2.1.0"
+    "vue": "^2.1.0",
+    "vue-color": "^2.0.5"
   },
   "devDependencies": {
     "babel-core": "^6.0.0",
