@@ -180,7 +180,7 @@ export default {
       if(beyond>0){
         countWillRemove = Math.floor(( beyond/(parseFloat(this.textAreaFz)*this.textAreaCurrentAlignRatio)))
         this.textAreaText = this.textAreaText.slice(0,this.textAreaText.length-countWillRemove-1)
-        this.textAreaW = this.textAreaW - parseFloat(this.textAreaFz)*this.textAreaCurrentAlignRatio
+        this.textAreaW = this.textAreaW - parseFloat(this.textAreaFz)*this.textAreaCurrentAlignRatio*(countWillRemove+1)
         this.isTextAreaBeyond = true
       }else {
          this.isTextAreaBeyond = false
@@ -193,6 +193,11 @@ export default {
       this.isTextAreaBeyond = false
       this.textAreaText = ""
       this.textAreaCurrentAlignRatio = 1
+      this.textAreaLeft = 10
+      this.textAreaTop = 10
+      this.textAreaColor = '#fff'
+      this.textAreaFz = 22
+      this.textAreaFm ='sans-serif'
     },
 
     // paint
@@ -234,8 +239,12 @@ export default {
         offset = getPointerToElem(ev, this.canvas)
         left = offset.left - this.pointerToTextArea.left
         top = offset.top - this.pointerToTextArea.top
-        this.textAreaLeft = left
-        this.textAreaTop = top
+        if (left >= 0 && left <=this.canvasWidth - parseFloat(this.textAreaStyObj.width)) {
+          this.textAreaLeft = left
+        }
+        if (top >=0 && top <= this.canvasHeight - parseFloat(this.textAreaStyObj.height)) {
+          this.textAreaTop = top
+        }
       }
     })
 
