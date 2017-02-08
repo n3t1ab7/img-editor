@@ -27,6 +27,7 @@
       <div class="mask" :style="editSty" @drop="drop" @dragover="dragover" @click="maskClick">
         <dropnotice :isShow="!canPaint" />
         <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" @keypress="textKeyPress" draggable="false" v-model="textText"></textarea>
+        <div class="clipbox" :style="clipSty" :class="clipCla"></div>
       </div>
     </div>
   </div>
@@ -54,15 +55,13 @@ export default {
   data() {
     return {
       // init main style 
-      toolWrapperH: 80,
+      toolWrapperH: 70,
       toolWrapperMargin: 10,
+      toolBarH: 30,
+      toolBarMargin: 10,
 
-      canvasH: parseFloat(this.height) - 80,
-      canvasW: parseFloat(this.width),
-
-      // action state
-      canPaint: false,
-      showText: false,
+      naturalW: this.width,
+      naturalH: this.height,
 
       // text style
       textL: 10,
@@ -74,6 +73,17 @@ export default {
         hex: "#fff"
       },
       textAlpha: 1,
+
+      // clip style
+      clipW: 200,
+      clipH: 200,
+      clipL: 10,
+      clipT: 10,
+
+      // action state
+      canPaint: false,
+      showText: false,
+      showClip: false,
 
       //text state
       textContenteditable: false,
@@ -90,6 +100,10 @@ export default {
 
       // text-enhance state 
       textShowColorPicker: false,
+
+      // data
+      imgUrl: null,
+      ctxData: null
     }
   },
 
@@ -110,40 +124,51 @@ export default {
 
   computed: {
     // style 
+    // style outer
     imageEditorSty() {
       return {
-        width: this.width,
-        height: this.height
+        width: this.naturalW + 'px',
+        height: (this.naturalH + this.toolWrapperH + this.toolBarMargin) + 'px'
       }
     },
 
     toolWrapperSty() {
       return {
-        height: this.toolWrapperH - this.toolWrapperMargin + 'px',
+        height: this.toolWrapperH + 'px',
         marginBottom: this.toolWrapperMargin + 'px'
       }
     },
 
     funcSty() {
       return {
-        height: '30px',
-        marginBottom: this.toolWrapperMargin + 'px'
+        height: this.toolBarH + 'px',
+        marginBottom: this.toolBarMargin + 'px'
       }
     },
 
     enhanceSty() {
       return {
-        height: '30px'
+        height: this.toolBarH + 'px'
       }
     },
 
     editSty() {
       return {
-        width: this.width,
-        height: parseFloat(this.height) - this.toolWrapperH + 'px'
+        width: this.naturalW + 'px',
+        height: this.naturalH + 'px',
+        backgroundColor: this.showClip ? 'rgba(0,0,0,0.5)' : 'transparent'
       }
     },
 
+    canvasH() {
+      return this.naturalH
+    },
+
+    canvasW() {
+      return this.naturalW
+    },
+
+    // style text
     textSty() {
       return {
         left: this.textL + 'px',
@@ -163,7 +188,20 @@ export default {
       }
     },
 
+    // style clip
+    clipSty() {
+      return {
+        height: this.clipH + 'px',
+        width: this.clipW + 'px',
+        top: this.clipT + 'px',
+        left: this.clipL + 'px',
+        backgroundImage: 'url(' + this.imgUrl + ')',
+        backgroundPosition: (-this.clipL) + 'px ' + (-this.clipT) + 'px'
+      }
+    },
+
     // class
+    // class text
     colorPickerCla() {
       return {
         hide: !this.textShowColorPicker
@@ -183,6 +221,12 @@ export default {
       return {
         hide: !this.showText
       }
+    },
+
+    clipCla() {
+      return {
+        hide: !this.showClip
+      }
     }
   },
 
@@ -193,26 +237,36 @@ export default {
     },
 
     drop(e) {
-      let file, imgUrl, img
+      let file, imgUrl, img, imgForComputeWH
       e.preventDefault()
+      if (this.canPaint) return false
       file = e.dataTransfer.files[0]
-      imgUrl = URL.createObjectURL(file)
+      this.imgUrl = URL.createObjectURL(file)
       img = new Image()
-      img.onload = (function() {
+      imgForComputeWH = new Image()
+      img.onload = () => {
         this.canPaint = true
         this.ctx.drawImage(img, 0, 0)
         this.ctxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH);
-      }).bind(this)
-      img.src = imgUrl
+      }
+      imgForComputeWH.onload = () => {
+        this.naturalW = imgForComputeWH.width
+        this.naturalH = imgForComputeWH.height
+        img.src = this.imgUrl
+      }
+      imgForComputeWH.src = this.imgUrl
     },
 
     // text
     toggleText() {
       if (!this.canPaint) return false
-      this.showText = !this.showText
-      if (!this.showText) {
+      if (this.showClip) {
+        this.resetClip()
+      }
+      if (this.showText) {
         this.resetText()
       } else {
+        this.showText = true
         this.textText = this.textInitText
         this.textCurrentAlignRatio = this.textCAlignRatio
         this.textW = computeTextW(this.textText, this.textFz, this.textCurrentAlignRatio, this.textMinW)
@@ -274,8 +328,24 @@ export default {
     },
 
     // clip
-    toggleClip(){
-      this.paint()
+    toggleClip() {
+      if (!this.canPaint) return false
+      if (this.showText) {
+        this.resetText()
+      }
+      if (this.showClip) {
+        this.resetClip()
+      } else {
+        this.showClip = true
+      }
+    },
+
+    resetClip() {
+      this.showClip = false
+      this.clipl = 10
+      this.clipT = 10
+      this.clipW = 200
+      this.clipH = 200
     },
 
     // paint
@@ -288,6 +358,7 @@ export default {
     reset() {
       if (!this.canPaint) return false
       this.resetText()
+      this.resetClip()
       this.ctx.putImageData(this.ctxData, 0, 0)
     },
 
@@ -295,9 +366,8 @@ export default {
       if (!this.canPaint) return false
     },
 
-    // paint 
-    paint(){
-       // textArea
+    paint() {
+      // textArea
       let ctx, left, top
       if (this.showText && this.textContenteditable) {
         left = this.textL
@@ -316,7 +386,11 @@ export default {
     let d = document
     let offset, left, top, beyond
 
-      ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) => d.addEventListener(name, (e) => e.preventDefault()))
+    this.text = this.$el.getElementsByClassName('textarea')[0]
+    this.canvas = this.$el.getElementsByTagName('canvas')[0]
+    this.ctx = this.canvas.getContext('2d');
+
+    ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) => d.addEventListener(name, (e) => e.preventDefault()))
 
     d.addEventListener('mousemove', (e) => {
       if (this.textCannDrag) {
@@ -339,10 +413,6 @@ export default {
     d.addEventListener('mouseup', () => {
       this.textCannDrag = false
     })
-
-    this.text = this.$el.getElementsByClassName('textarea')[0]
-    this.canvas = this.$el.getElementsByTagName('canvas')[0]
-    this.ctx = this.canvas.getContext('2d')
   }
 }
 </script>
@@ -402,6 +472,8 @@ input {
   user-select: none;
   position: relative;
   margin: 20px auto;
+  width: 400px;
+  height: 300px;
   .toolbar-wrapper {
     font-size: 11px;
     .toolbar {
@@ -423,7 +495,7 @@ input {
         margin: 0;
       }
       button {
-        margin-left:10px;
+        margin-left: 10px;
       }
       .menu {
         button {
@@ -431,7 +503,7 @@ input {
             box-shadow: none;
           }
           &:first-of-type {
-            margin-left:0;
+            margin-left: 0;
           }
         }
       }
@@ -441,7 +513,8 @@ input {
         border-radius: 2px;
         padding: 5px 17px;
       }
-      .download ,.reset{
+      .download,
+      .reset {
         float: right;
       }
     }
@@ -520,6 +593,11 @@ input {
         &.onborder {
           border-color: red;
         }
+      }
+      .clipbox {
+        position: absolute;
+        cursor: pointer;
+        border: 2px dashed #fff;
       }
     }
   }

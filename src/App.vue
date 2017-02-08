@@ -1,6 +1,6 @@
 <template>
   <div id="app">
-    <image-editor width="900px" height="675px"></image-editor>
+    <image-editor :width="600" :height="500"></image-editor>
   </div>
 </template>
 <script>
