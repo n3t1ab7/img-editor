@@ -1,15 +1,15 @@
 <template>
   <div id="app">
-    <image-editor width="640px" height="476px"></image-editor>
+    <image-editor width="900px" height="675px"></image-editor>
   </div>
 </template>
 
 <script>
-import ImageEditor from './ImageEditor.vue'
+import imageeditor from './imageeditor.vue'
 export default {
   name: 'app',
   components:{
-    ImageEditor:ImageEditor
+    'image-editor':imageeditor
   }
 }
 </script>

@@ -1,5 +1,5 @@
 <template>
-	<div class="toolbar" :style="styleObj">
+	<div class="toolbar" :style="style">
     <div class="menu">
       <button @click="toggleTextInput"><i class="icon">&#xe633;</i></button>
    	</div> 
@@ -14,15 +14,15 @@ export default {
   props:['sty'],
   data(){
   	return {
-  		styleObj:{
-  			height:this.sty.height+'px',
-  			marginBottom:this.sty.marginBottom+'px'
+  		style:{
+  			height:this.sty.height,
+  			marginBottom:this.sty.marginBottom
   		}
   	}
   },
   methods:{
   	toggleTextInput(){
-  		this.$emit('toggleTextArea')
+  		this.$emit('toggleText')
   	},
   	download(){
   		this.$emit('download')
@@ -36,10 +36,21 @@ export default {
 
 <style lang='scss' scoped>
 .toolbar {
+  * {
+    box-sizing: border-box;
+    padding: 0;
+    margin:0;
+  }
   .menu {
     button {
       background: #fff;
     }
+  }
+  .main-btn {
+    background: #20a0ff;
+    color: #fff;
+    border-radius: 4px;
+    padding: 5px 15px;
   }
   .download {
     float: right;

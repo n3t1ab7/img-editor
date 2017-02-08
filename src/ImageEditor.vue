@@ -1,29 +1,28 @@
 <template>
-  <div id="image-editor" :style="outerStyObj">
+  <div id="image-editor" :style="imageEditorSty">
     
     <div class="toolbar-wrapper" :style="toolWrapperSty">
-    <funcbar :sty='funcStyle' @toggleTextArea="toggleInputText" @download="download" @reset="reset"></funcbar>
-    <div class="toolbar enhance text-enhance" style="height:30px" :class="textEnhanceClassObj">
+    <funcbar :sty='funcSty' @toggleText="toggleText" @download="download" @reset="reset"/>
+
+    <div class="toolbar enhance text-enhance" :style="enhanceSty" :class="textEnhanceCla">
       <div class="menu">
-        <input type="text" :value="colors.hex" @click="toggleColorPicker" :style="colorInputStyObj" class="color-picker-input"/>
-        <div class="color-picker" :class="colorPickerClassObj">
-          <color-picker v-model="colors" @change-color="onColorChange"></color-picker>
+        <label>颜色<input type="text" readonly="true" @click="toggleColorPicker" :style="colorInputSty" class="color-picker-input"/></label>
+        <div class="color-picker" :class="colorPickerCla">
+          <color-picker v-model="textColors" @change-color="onColorChange"></color-picker>
         </div>
       </div> 
     </div>
+
     </div>
+    <div class="panel" :style="editSty">
+      <canvas :width="canvasW" :height="canvasH"></canvas>
 
-    <div class="panel" :style="panelStyObj">
-      <canvas :width="canvasWidth" :height="canvasHeight"></canvas>
-      <div class="mask" :style="maskStyObj" @drop="drop" @dragover="dragover" @click="maskClick">
-        <div :class="dropNoticeClassObj" class="drop-notice">
-          <i class="icon drop-icon">&#xe624;</i>
-          <p>拖放图片到此</p>
-        </div>
+      <div class="mask" :style="editSty" @drop="drop" @dragover="dragover" @click="maskClick">
+        <dropnotice :isShow="!canPaint"/>
 
-        <textarea :class="textAreaClassObj" class="textarea" :style="textAreaStyObj" :readonly="!contenteditable" @mousedown="textAreaMouseDown" @dblclick="textAreaDouble" @input="textAreaInput" @keypress="textAreaKeyPress" draggable="false" v-model="textAreaText"></textarea>
-
+        <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" @keypress="textKeyPress" draggable="false" v-model="textText"></textarea>
       </div>
+
     </div>  
 
   </div>
@@ -31,242 +30,244 @@
 
 
 <script>
-import {
-  Chrome
-} from 'vue-color'
-import {
-  getElemOffset,
-  getPointerToElem,
-  computeTextAreaW
-} from './utils.js'
+import {getElemOffset,getPointerToElem,computeTextW} from './utils.js'
 import funcbar from './func.vue'
+import dropnotice from  './drop-notice.vue'
+import {Chrome} from 'vue-color'
 export default {
   name: 'image-editor',
 
   props: ['width', 'height'],
   components: {
     'color-picker': Chrome,
-    funcbar:funcbar
+    funcbar:funcbar,
+    dropnotice:dropnotice
   },
   data() {
     return {
       // init main style 
-      outerStyObj: {
-        width: this.width,
-        height: this.height
-      },
+      toolWrapperH:80,
+      toolWrapperMargin:10,
 
-      panelStyObj: {
-        width: this.width,
-        height: parseFloat(this.height) - 80 + 'px'
-      },
-
-      maskStyObj: {
-        width: this.width,
-        height: parseFloat(this.height) - 80 + 'px'
-      },
-
-      toolWrapperSty:{
-        height:'70px',
-        marginBottom:'10px'
-      },
-
-      funcStyle:{
-        height:30,
-        marginBottom:10
-      },
-
-      canvasHeight: parseFloat(this.height) - 80,
-      canvasWidth: parseFloat(this.width),
+      canvasH: parseFloat(this.height) - 80,
+      canvasW: parseFloat(this.width),
 
       // textArea style
-      textAreaLeft: 10,
-      textAreaTop: 10,
-      textAreaW: 0,
-      textAreaFz: 22,
-      textAreaFm: 'sans-serif',
-      colors:{
+      textL: 10,
+      textT: 10,
+      textW: 0,
+      textFz: 22,
+      textFm: 'sans-serif',
+      textColors:{
         hex:"#fff"
       },
 
       // action state
       canPaint: false,
-      showTextArea: false,
+      showText: false,
 
       // textArea state
-      contenteditable: false,
-      canDragTextArea: false,
-      initTextAreaText: '双击编辑',
-      textAreaText: '',
-      textAreaLeftAlignRatio: 1.1,
-      textAreaCenterAlignRatio: 1.5,
-      textAreaCurrentAlignRatio: 1,
-      textAreaHeightPadding: 10,
-      minTextAreaWidth: 100,
-      isTextAreaBeyond: false,
-      pointerToTextArea: null,
+      textContenteditable: false,
+      textCannDrag: false,
+      textInitText: '双击编辑',
+      textText: '',
+      textLAlignRatio: 1.1,
+      textCAlignRatio: 1.5,
+      textCurrentAlignRatio: 1,
+      textHeightPadding: 10,
+      textMinW: 100,
+      textIsBeyond: false,
+      textToPointer: null,
 
       // text-enhance state 
-      showColorPicker:false,
+      textShowColorPicker:false,
     }
   },
 
   computed: {
     // style 
-    textAreaStyObj() {
+    imageEditorSty(){
       return {
-        left: this.textAreaLeft + 'px',
-        top: this.textAreaTop + 'px',
-        color:this.colors.hex,
-        width: this.textAreaW + 'px',
-        height: parseFloat(this.textAreaFz) + this.textAreaHeightPadding + 'px',
-        fontSize: this.textAreaFz + 'px',
-        fontFamily: this.textAreaFm
+        width: this.width,
+        height: this.height
       }
     },
 
-    colorInputStyObj(){
+    toolWrapperSty(){
       return {
-        background:this.colors.hex
+        height:this.toolWrapperH- this.toolWrapperMargin+'px',
+        marginBottom:this.toolWrapperMargin+'px'
       }
     },
 
-    colorPickerClassObj(){
+    funcSty(){
       return {
-        hide:!this.showColorPicker
+        height:'30px',
+        marginBottom:this.toolWrapperMargin+'px'
+      }
+    },
+
+    enhanceSty(){
+      return {
+        height:'30px'
+      }
+    },
+
+    editSty(){
+      return {
+        width: this.width,
+        height: parseFloat(this.height) - this.toolWrapperH + 'px'
+      }
+    },
+
+    textSty() {
+      return {
+        left: this.textL + 'px',
+        top: this.textT + 'px',
+        color:this.textColors.hex,
+        width: this.textW + 'px',
+        height: parseFloat(this.textFz) + this.textHeightPadding + 'px',
+        fontSize: this.textFz + 'px',
+        fontFamily: this.textFm
+      }
+    },
+
+    colorInputSty(){
+      return {
+        background:this.textColors.hex
       }
     },
 
     // class
-    dropNoticeClassObj() {
+    colorPickerCla(){
       return {
-        hide: this.canPaint
+        hide:!this.textShowColorPicker
       }
     },
 
-    textAreaClassObj() {
+    textCla() {
       return {
-        hide: !this.showTextArea,
-        abled: this.contenteditable,
-        disabled: !this.contenteditable,
-        beyond: this.isTextAreaBeyond
+        hide: !this.showText,
+        abled: this.textContenteditable,
+        disabled: !this.textContenteditable,
+        beyond: this.textIsBeyond
       }
     },
 
-    textEnhanceClassObj() {
+    textEnhanceCla() {
       return {
-        hide: !this.showTextArea
+        hide: !this.showText
       }
     }
   },
 
   methods: {
     // upload image
-    dragover(ev) {
-      ev.preventDefault()
+    dragover(e) {
+      e.preventDefault()
     },
 
-    drop(ev) {
+    drop(e) {
       let file, imgUrl, img
-      ev.preventDefault()
-      file = ev.dataTransfer.files[0]
+      e.preventDefault()
+      file = e.dataTransfer.files[0]
       imgUrl = URL.createObjectURL(file)
       img = new Image()
       img.onload = (function() {
         this.canPaint = true
         this.ctx.drawImage(img, 0, 0)
-        this.ctxData = this.ctx.getImageData(0, 0, this.canvasWidth, this.canvasHeight);
+        this.ctxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH);
       }).bind(this)
       img.src = imgUrl
     },
 
     // trigger action
-    toggleInputText(ev) {
+    toggleText() {
       if (!this.canPaint) return false
-      this.showTextArea = !this.showTextArea
-      if(!this.showTextArea) {
-        this.resetTextArea()
+      this.showText = !this.showText
+      if(!this.showText) {
+        this.resetText()
       }else{
-        this.textAreaText = this.initTextAreaText
-        this.textAreaCurrentAlignRatio = this.textAreaCenterAlignRatio
-        this.textAreaW = computeTextAreaW(this.textAreaText, this.textAreaFz, this.textAreaCurrentAlignRatio, this.minTextAreaWidth)
+        this.textText = this.textInitText
+        this.textCurrentAlignRatio = this.textCAlignRatio
+        this.textW = computeTextW(this.textText, this.textFz, this.textCurrentAlignRatio, this.textMinW)
       }
     },
 
     // action area
-    textAreaMouseDown(ev) {
-      this.canDragTextArea = true
-      this.pointerToTextArea = getPointerToElem(ev, this.textArea)
+    textMouseDown(e) {
+      this.textCannDrag = true
+      this.textToPointer = getPointerToElem(e, this.text)
     },
 
-    textAreaDouble() {
-      this.contenteditable = true
-      this.textAreaText = ''
-      this.textAreaCurrentAlignRatio = this.textAreaLeftAlignRatio
-      this.textAreaW = computeTextAreaW(this.textAreaText, this.textAreaFz, this.textAreaCurrentAlignRatio, this.minTextAreaWidth)
+    textDouble() {
+      this.textContenteditable = true
+      this.textText = ''
+      this.textCurrentAlignRatio = this.textLAlignRatio
+      this.textW = computeTextW(this.textText, this.textFz, this.textCurrentAlignRatio,this.textMinW)
     },
 
-    textAreaKeyPress(ev) {
-      if (ev.key == 'Enter') ev.preventDefault()
+    textKeyPress(e) {
+      if (e.key == 'Enter') e.preventDefault()
     },
 
-    textAreaInput() {
+    textInput() {
       let beyond, countWillRemove
-      this.textAreaCurrentAlignRatio = this.textAreaLeftAlignRatio
-      this.textAreaW = computeTextAreaW(this.textAreaText, this.textAreaFz, this.textAreaCurrentAlignRatio, this.minTextAreaWidth)
-      beyond = getElemOffset(this.canvas, this.textArea).left + this.textAreaW - this.canvasWidth
+      this.textCurrentAlignRatio = this.textLAlignRatio
+      this.textW = computeTextW(this.textText, this.textFz, this.textCurrentAlignRatio,this.textMinW)
+      beyond = getElemOffset(this.canvas, this.text).left + this.textW - this.canvasW
       if (beyond > 0) {
-        countWillRemove = Math.floor((beyond / (parseFloat(this.textAreaFz) * this.textAreaCurrentAlignRatio)))
-        this.textAreaText = this.textAreaText.slice(0, this.textAreaText.length - countWillRemove - 1)
-        this.textAreaW = this.textAreaW - parseFloat(this.textAreaFz) * this.textAreaCurrentAlignRatio * (countWillRemove + 1)
-        this.isTextAreaBeyond = true
+        countWillRemove = Math.floor((beyond / (parseFloat(this.textFz) * this.textCurrentAlignRatio)))
+        this.textText = this.textText.slice(0, this.textText.length - countWillRemove - 1)
+        this.textW = this.textW - parseFloat(this.textFz) * this.textCurrentAlignRatio * (countWillRemove + 1)
+        this.textIsBeyond = true
       } else {
-        this.isTextAreaBeyond = false
+        this.textIsBeyond = false
       }
     },
 
-    resetTextArea() {
-      this.showTextArea = false
-      this.contenteditable = false
-      this.isTextAreaBeyond = false
-      this.textAreaText = ""
-      this.textAreaCurrentAlignRatio = 1
-      this.textAreaLeft = 10
-      this.textAreaTop = 10
-      this.colors.hex = '#fff'
-      this.textAreaFz = 22
-      this.textAreaFm = 'sans-serif'
-      this.showColorPicker = false
+    resetText() {
+      this.showText = false
+      this.textContenteditable = false
+      this.textIsBeyond = false
+      this.textText = ""
+      this.textCurrentAlignRatio = 1
+      this.textL = 10
+      this.textT = 10
+      this.textColors.hex = '#fff'
+      this.textFz = 22
+      this.textFm = 'sans-serif'
+      this.textShowColorPicker = false
     },
 
     toggleColorPicker(){
-      this.showColorPicker = !this.showColorPicker
+      this.textShowColorPicker = !this.textShowColorPicker
     },
 
     onColorChange(val) {
-        this.colors.hex = val.hex
+        this.textColors.hex = val.hex
     },
 
     // paint
-    maskClick(ev) {
+    maskClick(e) {
       let ctx, left, top
-      if (ev.target.className !== 'mask') return false
+      if (e.target.className !== 'mask') return false
         // textArea
-      if (this.showTextArea && this.contenteditable) {
+      if (this.showText && this.textContenteditable) {
         ctx = this.ctx,
-          left = this.textAreaLeft,
-          top = this.textAreaTop + parseFloat(this.textAreaFz)
-        ctx.fillStyle = this.colors.hex
-        ctx.font = this.textAreaFz + 'px ' + this.textAreaFm
-        ctx.fillText(this.textAreaText, left, top)
-        this.resetTextArea()
+          left = this.textL,
+          top = this.textT + parseFloat(this.textFz)
+        ctx.fillStyle = this.textColors.hex
+        ctx.font = this.textFz + 'px ' + this.textFm
+        ctx.fillText(this.textText, left, top)
+        this.resetText()
       }
     },
 
     // user operation
     reset() {
       if (!this.canPaint) return false
-      this.resetTextArea()
+      this.resetText()
       this.ctx.putImageData(this.ctxData, 0, 0)
     },
 
@@ -279,27 +280,27 @@ export default {
     let d = document
     let offset, left, top
 
-      ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) => d.addEventListener(name, (ev) => ev.preventDefault()))
+      ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) => d.addEventListener(name, (e) => e.preventDefault()))
 
-    d.addEventListener('mousemove', (ev) => {
-      if (this.canDragTextArea) {
-        offset = getPointerToElem(ev, this.canvas)
-        left = offset.left - this.pointerToTextArea.left
-        top = offset.top - this.pointerToTextArea.top
-        if (left >= 0 && left <= this.canvasWidth - parseFloat(this.textAreaStyObj.width)) {
-          this.textAreaLeft = left
+    d.addEventListener('mousemove', (e) => {
+      if (this.textCannDrag) {
+        offset = getPointerToElem(e, this.canvas)
+        left = offset.left - this.textToPointer.left
+        top = offset.top - this.textToPointer.top
+        if (left >= 0 && left <= this.canvasW - parseFloat(this.textSty.width)) {
+          this.textL = left
         }
-        if (top >= 0 && top <= this.canvasHeight - parseFloat(this.textAreaStyObj.height)) {
-          this.textAreaTop = top
+        if (top >= 0 && top <= this.canvasH - parseFloat(this.textSty.height)) {
+          this.textT = top
         }
       }
     })
 
     d.addEventListener('mouseup', () => {
-      this.canDragTextArea = false
+      this.textCannDrag = false
     })
 
-    this.textArea = this.$el.getElementsByClassName('textarea')[0]
+    this.text = this.$el.getElementsByClassName('textarea')[0]
     this.canvas = this.$el.getElementsByTagName('canvas')[0]
     this.ctx = this.canvas.getContext('2d')
   }
@@ -321,11 +322,6 @@ export default {
   -moz-osx-font-smoothing: grayscale;
 }
 .main-btn {
-  background: #20a0ff;
-  color: #fff;
-  border-radius: 4px;
-  padding: 5px 15px;
-
   &:hover {
     background: #4db3ff;
   }
@@ -363,17 +359,20 @@ input {
   margin: 20px auto;
 
   .toolbar-wrapper {
+    font-size: 11px;
     .toolbar.enhance {
-      background: #f5f5f5;
-      font-size: 13px;
-      border-radius: 4px;
+      background: #f5f6fa;
+      border-radius: 6px;
+      color:#747272;
     }
     .toolbar.text-enhance {
       .menu {
-        line-height: 30px;
+        line-height: 33px;
       }
       .color-picker-input {
-        width: 30px;
+        width: 12px;
+        height:12px;
+        border-radius:100%;
         border: 1px solid #ccc;
         text-align: center;
       }
@@ -398,20 +397,6 @@ input {
     }
     .mask {
       z-index: 50;
-
-      .drop-notice {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        font-size: 30px;
-        text-align: center;
-        transform: translateX(-50%) translateY(-50%);
-        color: #ada4a4;
-
-        .drop-icon {
-          font-size: 60px;
-        }
-      }
       .textarea {
         position: absolute;
         overflow: hidden;
