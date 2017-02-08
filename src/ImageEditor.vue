@@ -1,7 +1,7 @@
 <template>
   <div id="image-editor" :style="imageEditorSty">
     <div class="toolbar-wrapper" :style="toolWrapperSty">
-      <funcbar :sty='funcSty' @toggleText="toggleText" @download="download" @reset="reset" />
+      <funcbar :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @download="download" @reset="reset" />
       <div class="toolbar enhance text-enhance" :style="enhanceSty" :class="textEnhanceCla">
         <div class="menu">
           <label>
@@ -64,7 +64,7 @@ export default {
       canPaint: false,
       showText: false,
 
-      // textArea style
+      // text style
       textL: 10,
       textT: 10,
       textW: 0,
@@ -75,7 +75,7 @@ export default {
       },
       textAlpha: 1,
 
-      // textAretype="number" a state
+      //text state
       textContenteditable: false,
       textCannDrag: false,
       textInitText: '双击编辑',
@@ -206,7 +206,7 @@ export default {
       img.src = imgUrl
     },
 
-    // trigger action
+    // text
     toggleText() {
       if (!this.canPaint) return false
       this.showText = !this.showText
@@ -219,7 +219,6 @@ export default {
       }
     },
 
-    // action area
     textMouseDown(e) {
       this.textCannDrag = true
       this.textToPointer = getPointerToElem(e, this.text)
@@ -274,11 +273,32 @@ export default {
       this.textColors.hex = val.hex
     },
 
+    // clip
+    toggleClip(){
+      this.paint()
+    },
+
     // paint
     maskClick(e) {
-      let ctx, left, top
       if (e.target.className !== 'mask') return false
-        // textArea
+      this.paint()
+    },
+
+    // reset and download
+    reset() {
+      if (!this.canPaint) return false
+      this.resetText()
+      this.ctx.putImageData(this.ctxData, 0, 0)
+    },
+
+    download() {
+      if (!this.canPaint) return false
+    },
+
+    // paint 
+    paint(){
+       // textArea
+      let ctx, left, top
       if (this.showText && this.textContenteditable) {
         left = this.textL
         top = this.textT + parseFloat(this.textFz)
@@ -289,17 +309,6 @@ export default {
         ctx.fillText(this.textText, left, top)
         this.resetText()
       }
-    },
-
-    // user operation
-    reset() {
-      if (!this.canPaint) return false
-      this.resetText()
-      this.ctx.putImageData(this.ctxData, 0, 0)
-    },
-
-    download() {
-      if (!this.canPaint) return false
     }
   },
 
@@ -352,10 +361,13 @@ export default {
   -moz-osx-font-smoothing: grayscale;
 }
 
-.main-btn {
-  &:hover {
-    background: #4db3ff;
-  }
+.hide {
+  display: none;
+}
+
+body {
+  margin: 0;
+  padding: 0;
 }
 
 button {
@@ -363,26 +375,25 @@ button {
   cursor: pointer;
   outline: none;
   box-sizing: border-box;
+  background: #fff;
+  margin-left: 5px;
+  transition: all 450ms cubic-bezier(0.23, 1, 0.32, 1);
+  &:hover {
+    opacity: 0.6;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
+  }
 }
 
 input {
   outline: none;
-}
-
-.hide {
-  display: none;
-}
-
-.toolbar {
-  .menu {
-    float: left;
-    height: 100%;
-    button {
-      margin-right: 5px;
-      &:hover {
-        color: #555;
-      }
-    }
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, .15);
+  border-radius: 2px;
+  transition: all 450ms cubic-bezier(0.23, 1, 0.32, 1);
+  width: 30px;
+  text-align: center;
+  &:hover {
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -393,24 +404,58 @@ input {
   margin: 20px auto;
   .toolbar-wrapper {
     font-size: 11px;
+    .toolbar {
+      .menu {
+        float: left;
+        height: 100%;
+      }
+      .main-btn {
+        background: #20a0ff;
+        color: #fff;
+        border-radius: 2px;
+        padding: 5px 17px;
+      }
+    }
+    .toolbar.funcbar {
+      * {
+        box-sizing: border-box;
+        padding: 0;
+        margin: 0;
+      }
+      button {
+        margin-left:10px;
+      }
+      .menu {
+        button {
+          &:hover {
+            box-shadow: none;
+          }
+          &:first-of-type {
+            margin-left:0;
+          }
+        }
+      }
+      .main-btn {
+        background: #20a0ff;
+        color: #fff;
+        border-radius: 2px;
+        padding: 5px 17px;
+      }
+      .download ,.reset{
+        float: right;
+      }
+    }
     .toolbar.enhance {
       background: #f5f6fa;
       border-radius: 6px;
       color: #747272;
       label {
-        margin-right: 6px;
+        margin-left: 7px;
       }
     }
     .toolbar.text-enhance {
       .menu {
         line-height: 33px;
-      }
-      input {
-        text-align: center;
-      }
-      .font-size-input,
-      .alpha-input {
-        width: 30px;
       }
       .color-picker-input {
         width: 12px;
@@ -440,6 +485,18 @@ input {
     }
     .mask {
       z-index: 50;
+      .drop-notice {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        font-size: 30px;
+        text-align: center;
+        transform: translateX(-50%) translateY(-50%);
+        color: #ada4a4;
+        .drop-icon {
+          font-size: 60px;
+        }
+      }
       .textarea {
         position: absolute;
         overflow: hidden;

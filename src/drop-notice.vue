@@ -18,19 +18,3 @@ export default {
   }
 }
 </script>
-
-<style lang='scss' scoped>
- .drop-notice {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    font-size: 30px;
-    text-align: center;
-    transform: translateX(-50%) translateY(-50%);
-    color: #ada4a4;
-
-    .drop-icon {
-        font-size: 60px;
-    }
-}
-</style>

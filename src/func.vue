@@ -1,7 +1,8 @@
 <template>
-	<div class="toolbar" :style="style">
+	<div class="toolbar funcbar" :style="style">
     <div class="menu">
-      <button @click="toggleTextInput"><i class="icon">&#xe633;</i></button>
+      <button @click="toggleText"><i class="icon">&#xe633;</i></button>
+      <button @click="toggleClip"><i class="icon">&#xe600;</i></button>
    	</div> 
    <button class="main-btn download" @click="download">导出</button>
    <button class="main-btn reset" @click="reset">重置</button>
@@ -21,9 +22,12 @@ export default {
   	}
   },
   methods:{
-  	toggleTextInput(){
+  	toggleText(){
   		this.$emit('toggleText')
   	},
+    toggleClip(){
+      this.$emit('toggleClip')
+    },
   	download(){
   		this.$emit('download')
   	},
@@ -33,33 +37,3 @@ export default {
   }
 }
 </script>
-
-<style lang='scss' scoped>
-.toolbar {
-  * {
-    box-sizing: border-box;
-    padding: 0;
-    margin:0;
-  }
-  .menu {
-    button {
-      background: #fff;
-    }
-  }
-  .main-btn {
-    background: #20a0ff;
-    color: #fff;
-    border-radius: 4px;
-    padding: 5px 15px;
-  }
-  .download {
-    float: right;
-  }
-  .reset {
-    float: right;
-  }
-  .download, .reset {
-    margin-left: 10px;
-  }
-}
-</style>
