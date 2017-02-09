@@ -43,12 +43,14 @@ import {
   getPointerToElem,
   computeTextW,
   ctxDataToImgUrl
-} from './utils.js'
+}
+from './utils.js'
 import funcbar from './func.vue'
 import dropnotice from './drop-notice.vue'
 import {
   Chrome
-} from 'vue-color'
+}
+from 'vue-color'
 
 export default {
   name: 'image-editor',
@@ -86,6 +88,7 @@ export default {
       clipH: 200,
       clipL: 10,
       clipT: 10,
+      clipBorderW: 1,
 
       // action state
       canPaint: false,
@@ -97,7 +100,7 @@ export default {
       textCanDrag: false,
       textInitText: '双击编辑',
       textText: '',
-      textLAlignRatio: 1.1,
+      textLAlignRatio: 1.04,
       textCAlignRatio: 1.5,
       textCurrentAlignRatio: 1,
       textHeightPadding: 10,
@@ -129,7 +132,8 @@ export default {
       if (beyond > 0) {
         this.textFz = old
         this.textIsBeyond = true
-      } else {
+      }
+      else {
         this.textIsBeyond = false
       }
     }
@@ -204,12 +208,13 @@ export default {
     // style clip
     clipSty() {
       return {
+        borderWidth: this.clipBorderW + 'px',
         height: this.clipH + 'px',
         width: this.clipW + 'px',
         top: this.clipT + 'px',
         left: this.clipL + 'px',
         backgroundImage: 'url(' + this.nowImgUrl + ')',
-        backgroundPosition: (-this.clipL - 1) + 'px ' + (-this.clipT - 1) + 'px'
+        backgroundPosition: (-this.clipL - this.clipBorderW) + 'px ' + (-this.clipT - this.clipBorderW) + 'px'
       }
     },
 
@@ -256,25 +261,22 @@ export default {
     },
 
     drop(e) {
+      if (this.canPaint) return false
       let file, img, imgForComputeWH
       e.preventDefault()
-      if (this.canPaint) return false
       file = e.dataTransfer.files[0]
       this.nowImgUrl = URL.createObjectURL(file)
       img = new Image()
-      imgForComputeWH = new Image()
       img.onload = () => {
-        this.canPaint = true
-        this.ctx.drawImage(img, 0, 0)
-        this.initCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
-        this.nowCtxData = this.initCtxData
+        this.naturalW = img.width
+        this.naturalH = img.height
+        this.$nextTick(function() {
+          this.ctx.drawImage(img, 0, 0)
+          this.canPaint = true
+          this.nowCtxData = this.initCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
+        })
       }
-      imgForComputeWH.onload = () => {
-        this.naturalW = imgForComputeWH.width
-        this.naturalH = imgForComputeWH.height
-        img.src = this.nowImgUrl
-      }
-      imgForComputeWH.src = this.nowImgUrl
+      img.src = this.nowImgUrl
     },
 
     // text
@@ -285,7 +287,8 @@ export default {
       }
       if (this.showText) {
         this.resetText()
-      } else {
+      }
+      else {
         this.showText = true
         this.textText = this.textInitText
         this.textCurrentAlignRatio = this.textCAlignRatio
@@ -319,7 +322,8 @@ export default {
         this.textText = this.textText.slice(0, this.textText.length - countWillRemove - 1)
         this.textW = this.textW - parseFloat(this.textFz) * this.textCurrentAlignRatio * (countWillRemove + 1)
         this.textIsBeyond = true
-      } else {
+      }
+      else {
         this.textIsBeyond = false
       }
     },
@@ -356,7 +360,8 @@ export default {
       }
       if (this.showClip) {
         this.resetClip()
-      } else {
+      }
+      else {
         this.showClip = true
       }
     },
@@ -657,7 +662,8 @@ input {
       .clipbox {
         position: absolute;
         cursor: pointer;
-        border: 1px dashed #fff;
+        border-style: dashed;
+        border-color: #fff;
       }
     }
   }
