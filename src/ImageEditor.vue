@@ -21,13 +21,18 @@
           </label>
         </div>
       </div>
+      <div class="toolbar enhance clip-enhance" :style="enhanceSty" :class="clipEnhanceCla">
+        <div class="menu">
+          <button class="main-btn" @click="downloadClip">导出裁剪</button>
+        </div>
+      </div>
     </div>
     <div class="panel" :style="editSty">
       <canvas :width="canvasW" :height="canvasH"></canvas>
       <div class="mask" :style="editSty" @drop="drop" @dragover="dragover" @click="maskClick">
         <dropnotice :isShow="!canPaint" />
         <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" @keypress="textKeyPress" draggable="false" v-model="textText"></textarea>
-        <div class="clipbox" :style="clipSty" :class="clipCla"></div>
+        <div class="clipbox" :style="clipSty" :class="clipCla" @mousedown="clipMouseDown"></div>
       </div>
     </div>
   </div>
@@ -36,13 +41,15 @@
 import {
   getElemOffset,
   getPointerToElem,
-  computeTextW
+  computeTextW,
+  ctxDataToImgUrl
 } from './utils.js'
 import funcbar from './func.vue'
 import dropnotice from './drop-notice.vue'
 import {
   Chrome
 } from 'vue-color'
+
 export default {
   name: 'image-editor',
 
@@ -87,7 +94,7 @@ export default {
 
       //text state
       textContenteditable: false,
-      textCannDrag: false,
+      textCanDrag: false,
       textInitText: '双击编辑',
       textText: '',
       textLAlignRatio: 1.1,
@@ -101,9 +108,15 @@ export default {
       // text-enhance state 
       textShowColorPicker: false,
 
+      // clip state
+      clipToPointer: null,
+      clipIsBeyond: false,
+      clipCanDrag: false,
+
       // data
-      imgUrl: null,
-      ctxData: null
+      nowImgUrl: '',
+      initCtxData: null,
+      nowCtxData: null
     }
   },
 
@@ -195,8 +208,8 @@ export default {
         width: this.clipW + 'px',
         top: this.clipT + 'px',
         left: this.clipL + 'px',
-        backgroundImage: 'url(' + this.imgUrl + ')',
-        backgroundPosition: (-this.clipL) + 'px ' + (-this.clipT) + 'px'
+        backgroundImage: 'url(' + this.nowImgUrl + ')',
+        backgroundPosition: (-this.clipL - 1) + 'px ' + (-this.clipT - 1) + 'px'
       }
     },
 
@@ -227,6 +240,12 @@ export default {
       return {
         hide: !this.showClip
       }
+    },
+
+    clipEnhanceCla() {
+      return {
+        hide: !this.showClip
+      }
     }
   },
 
@@ -237,24 +256,25 @@ export default {
     },
 
     drop(e) {
-      let file, imgUrl, img, imgForComputeWH
+      let file, img, imgForComputeWH
       e.preventDefault()
       if (this.canPaint) return false
       file = e.dataTransfer.files[0]
-      this.imgUrl = URL.createObjectURL(file)
+      this.nowImgUrl = URL.createObjectURL(file)
       img = new Image()
       imgForComputeWH = new Image()
       img.onload = () => {
         this.canPaint = true
         this.ctx.drawImage(img, 0, 0)
-        this.ctxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH);
+        this.initCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
+        this.nowCtxData = this.initCtxData
       }
       imgForComputeWH.onload = () => {
         this.naturalW = imgForComputeWH.width
         this.naturalH = imgForComputeWH.height
-        img.src = this.imgUrl
+        img.src = this.nowImgUrl
       }
-      imgForComputeWH.src = this.imgUrl
+      imgForComputeWH.src = this.nowImgUrl
     },
 
     // text
@@ -274,7 +294,7 @@ export default {
     },
 
     textMouseDown(e) {
-      this.textCannDrag = true
+      this.textCanDrag = true
       this.textToPointer = getPointerToElem(e, this.text)
     },
 
@@ -304,6 +324,14 @@ export default {
       }
     },
 
+    toggleColorPicker() {
+      this.textShowColorPicker = !this.textShowColorPicker
+    },
+
+    onColorChange(val) {
+      this.textColors.hex = val.hex
+    },
+
     resetText() {
       this.showText = false
       this.textContenteditable = false
@@ -319,13 +347,6 @@ export default {
       this.textAlpha = 1
     },
 
-    toggleColorPicker() {
-      this.textShowColorPicker = !this.textShowColorPicker
-    },
-
-    onColorChange(val) {
-      this.textColors.hex = val.hex
-    },
 
     // clip
     toggleClip() {
@@ -340,6 +361,15 @@ export default {
       }
     },
 
+    clipMouseDown(e) {
+      this.clipToPointer = getPointerToElem(e, this.clip)
+      this.clipCanDrag = true
+    },
+
+    downloadClip() {
+      this.outPut(this.clipL, this.clipT, this.clipW, this.clipH)
+    },
+
     resetClip() {
       this.showClip = false
       this.clipl = 10
@@ -348,7 +378,7 @@ export default {
       this.clipH = 200
     },
 
-    // paint
+    // mask
     maskClick(e) {
       if (e.target.className !== 'mask') return false
       this.paint()
@@ -359,16 +389,19 @@ export default {
       if (!this.canPaint) return false
       this.resetText()
       this.resetClip()
-      this.ctx.putImageData(this.ctxData, 0, 0)
+      this.ctx.putImageData(this.initCtxData, 0, 0)
+      this.nowImgUrl = ctxDataToImgUrl(this.initCtxData, 0, 0, this.canvasW, this.canvasH)
     },
 
     download() {
       if (!this.canPaint) return false
+      this.outPut(0, 0, this.canvasW, this.canvasH)
     },
 
+    // paint
     paint() {
       // textArea
-      let ctx, left, top
+      let ctx, left, top, data
       if (this.showText && this.textContenteditable) {
         left = this.textL
         top = this.textT + parseFloat(this.textFz)
@@ -378,7 +411,19 @@ export default {
         ctx.font = this.textFz + 'px ' + this.textFm
         ctx.fillText(this.textText, left, top)
         this.resetText()
+        this.nowCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
+        this.nowImgUrl = ctxDataToImgUrl(this.nowCtxData, 0, 0, this.canvasW, this.canvasH)
       }
+    },
+
+    // output
+    outPut(x, y, w, h) {
+      let a, url
+      a = document.createElement('a')
+      url = ctxDataToImgUrl(this.nowCtxData, x, y, w, h)
+      a.href = url
+      a.download = String(+(new Date))
+      a.click()
     }
   },
 
@@ -387,14 +432,15 @@ export default {
     let offset, left, top, beyond
 
     this.text = this.$el.getElementsByClassName('textarea')[0]
+    this.clip = this.$el.getElementsByClassName('clipbox')[0]
     this.canvas = this.$el.getElementsByTagName('canvas')[0]
     this.ctx = this.canvas.getContext('2d');
 
     ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) => d.addEventListener(name, (e) => e.preventDefault()))
 
     d.addEventListener('mousemove', (e) => {
-      if (this.textCannDrag) {
-        offset = getPointerToElem(e, this.canvas)
+      offset = getPointerToElem(e, this.canvas)
+      if (this.textCanDrag) {
         left = offset.left - this.textToPointer.left
         top = offset.top - this.textToPointer.top
         if (left >= 0 && left <= this.canvasW - parseFloat(this.textSty.width)) {
@@ -408,10 +454,25 @@ export default {
           this.textIsBeyond = false
         }
       }
+      if (this.clipCanDrag) {
+        left = offset.left - this.clipToPointer.left
+        top = offset.top - this.clipToPointer.top
+        if (left >= 0 && left <= this.canvasW - parseFloat(this.clipSty.width)) {
+          this.clipL = left
+        }
+        if (top >= 0 && top <= this.canvasH - parseFloat(this.clipSty.height)) {
+          this.clipT = top
+        }
+        beyond = getElemOffset(this.canvas, this.clip).left + this.clipW - this.canvasW
+        if (beyond <= 0) {
+          this.clipIsBeyond = false
+        }
+      }
     })
 
     d.addEventListener('mouseup', () => {
-      this.textCannDrag = false
+      this.textCanDrag = false
+      this.clipCanDrag = false
     })
   }
 }
@@ -441,6 +502,7 @@ body {
 }
 
 button {
+  display: inline-block;
   border: none;
   cursor: pointer;
   outline: none;
@@ -508,9 +570,6 @@ input {
         }
       }
       .main-btn {
-        background: #20a0ff;
-        color: #fff;
-        border-radius: 2px;
         padding: 5px 17px;
       }
       .download,
@@ -527,9 +586,7 @@ input {
       }
     }
     .toolbar.text-enhance {
-      .menu {
-        line-height: 33px;
-      }
+      line-height: 33px;
       .color-picker-input {
         width: 12px;
         height: 12px;
@@ -541,6 +598,9 @@ input {
         position: absolute;
         z-index: 100;
       }
+    }
+    .toolbar.clip-enhance {
+      line-height: 32px;
     }
   }
   .panel {
@@ -597,7 +657,7 @@ input {
       .clipbox {
         position: absolute;
         cursor: pointer;
-        border: 2px dashed #fff;
+        border: 1px dashed #fff;
       }
     }
   }
