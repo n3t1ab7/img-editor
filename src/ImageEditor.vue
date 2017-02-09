@@ -45,8 +45,8 @@ import {
   ctxDataToImgUrl
 }
 from './utils.js'
-import funcbar from './func.vue'
-import dropnotice from './drop-notice.vue'
+import funcbar from './components/func.vue'
+import dropnotice from './components/drop-notice.vue'
 import {
   Chrome
 }
@@ -507,6 +507,7 @@ body {
 }
 
 button {
+  position: relative;
   display: inline-block;
   border: none;
   cursor: pointer;
@@ -514,11 +515,6 @@ button {
   box-sizing: border-box;
   background: #fff;
   margin-left: 5px;
-  transition: all 450ms cubic-bezier(0.23, 1, 0.32, 1);
-  &:hover {
-    opacity: 0.6;
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
-  }
 }
 
 input {
@@ -526,12 +522,9 @@ input {
   cursor: pointer;
   border: 1px solid rgba(0, 0, 0, .15);
   border-radius: 2px;
-  transition: all 450ms cubic-bezier(0.23, 1, 0.32, 1);
   width: 30px;
   text-align: center;
-  &:hover {
-    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
-  }
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
 }
 
 #image-editor {
@@ -551,7 +544,7 @@ input {
       .main-btn {
         background: #20a0ff;
         color: #fff;
-        border-radius: 2px;
+        border-radius: 4px;
         padding: 5px 17px;
       }
     }
@@ -565,10 +558,8 @@ input {
         margin-left: 10px;
       }
       .menu {
+        line-height: 27px;
         button {
-          &:hover {
-            box-shadow: none;
-          }
           &:first-of-type {
             margin-left: 0;
           }
@@ -586,6 +577,7 @@ input {
       background: #f5f6fa;
       border-radius: 6px;
       color: #747272;
+      box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);
       label {
         margin-left: 7px;
       }
