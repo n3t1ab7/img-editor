@@ -19,11 +19,46 @@
             不透明度
             <input type="number" v-model="textAlpha" class="alpha-input" step="0.1" min="0" max="1" />
           </label>
+          <label>
+            阴影水平偏移
+            <input type="number" v-model="shadowX" />
+          </label>
+          <label>
+            阴影垂直偏移
+            <input type="number" v-model="shadowY" />
+          </label>
+          <label>
+            模糊半径
+            <input type="number" v-model="shadowBlur" />
+          </label>
+          <label>
+            阴影颜色
+            <input type="text" readonly="true" @click="toggleShadowColorPicker" :style="shadowColorInputSty" class="color-picker-input" />
+            <div class="color-picker" :class="shadowColorPickerCla">
+              <color-picker v-model="shadowColors" @change-color="onShadowColorChange"></color-picker>
+            </div>
+          </label>
         </div>
       </div>
       <div class="toolbar enhance clip-enhance" :style="enhanceSty" :class="clipEnhanceCla">
         <div class="menu">
           <button class="main-btn" @click="downloadClip">导出裁剪</button>
+          <label>
+            X
+            <input type="number" class="clip-input" v-model="clipL" />
+          </label>
+          <label>
+            Y
+            <input type="number" class="clip-input" v-model="clipT" />
+          </label>
+          <label>
+            宽度
+            <input type="number" class="clip-input" v-model="clipW" />
+          </label>
+          <label>
+            高度
+            <input type="number" class="clip-input" v-model="clipH" />
+          </label>
         </div>
       </div>
     </div>
@@ -32,7 +67,16 @@
       <div class="mask" :style="editSty" @drop="drop" @dragover="dragover" @click="maskClick">
         <dropnotice :isShow="!canPaint" />
         <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" @keypress="textKeyPress" draggable="false" v-model="textText"></textarea>
-        <div class="clipbox" :style="clipSty" :class="clipCla" @mousedown="clipMouseDown"></div>
+        <div class="clipbox" :style="clipSty" :class="clipCla" @mousedown="clipMouseDown">
+          <span class="clip-point"></span>
+          <span class="clip-point"></span>
+          <span class="clip-point"></span>
+          <span class="clip-point"></span>
+          <span class="clip-point"></span>
+          <span class="clip-point"></span>
+          <span class="clip-point"></span>
+          <span class="clip-point"></span>
+        </div>
       </div>
     </div>
   </div>
@@ -79,9 +123,16 @@ export default {
       textFz: 22,
       textFm: 'sans-serif',
       textColors: {
-        hex: "#fff"
+        hex: "#ffffff"
+      },
+      shadowColors: {
+        hex: '#000000'
       },
       textAlpha: 1,
+      shadowBlur: 0,
+      shadowX: 0,
+      shadowY: 0,
+
 
       // clip style
       clipW: 200,
@@ -110,6 +161,7 @@ export default {
 
       // text-enhance state 
       textShowColorPicker: false,
+      textShowShadowColorPicker: false,
 
       // clip state
       clipToPointer: null,
@@ -173,7 +225,7 @@ export default {
       return {
         width: this.naturalW + 'px',
         height: this.naturalH + 'px',
-        backgroundColor: this.showClip ? 'rgba(0,0,0,0.5)' : 'transparent'
+        backgroundColor: this.showClip ? 'rgba(0,0,0,0.6)' : 'transparent'
       }
     },
 
@@ -195,13 +247,20 @@ export default {
         height: parseFloat(this.textFz) + this.textHeightPadding + 'px',
         fontSize: this.textFz + 'px',
         fontFamily: this.textFm,
-        opacity: this.textAlpha
+        opacity: this.textAlpha,
+        textShadow: ((!this.shadowX) && (!this.shadowY)) ? 'none' : this.shadowX + 'px ' + this.shadowY + 'px ' + this.shadowBlur + 'px ' + this.shadowColors.hex
       }
     },
 
     colorInputSty() {
       return {
         background: this.textColors.hex
+      }
+    },
+
+    shadowColorInputSty() {
+      return {
+        background: this.shadowColors.hex
       }
     },
 
@@ -223,6 +282,12 @@ export default {
     colorPickerCla() {
       return {
         hide: !this.textShowColorPicker
+      }
+    },
+
+    shadowColorPickerCla() {
+      return {
+        hide: !this.textShowShadowColorPicker
       }
     },
 
@@ -332,8 +397,16 @@ export default {
       this.textShowColorPicker = !this.textShowColorPicker
     },
 
+    toggleShadowColorPicker() {
+      this.textShowShadowColorPicker = !this.textShowShadowColorPicker
+    },
+
     onColorChange(val) {
       this.textColors.hex = val.hex
+    },
+
+    onShadowColorChange(val) {
+      this.shadowColors.hex = val.hex
     },
 
     resetText() {
@@ -344,11 +417,16 @@ export default {
       this.textCurrentAlignRatio = 1
       this.textL = 10
       this.textT = 10
-      this.textColors.hex = '#fff'
+      this.textColors.hex = '#ffffff'
+      this.shadowColors.hex = '#000000'
       this.textFz = 22
       this.textFm = 'sans-serif'
       this.textShowColorPicker = false
+      this.shadowOffsetY = 0
+      this.shadowOffsetX = 0
+      this.shadowBlur = 0
       this.textAlpha = 1
+
     },
 
 
@@ -368,7 +446,9 @@ export default {
 
     clipMouseDown(e) {
       this.clipToPointer = getPointerToElem(e, this.clip)
-      this.clipCanDrag = true
+      if (e.target.className !== 'clip-point') {
+        this.clipCanDrag = true
+      }
     },
 
     downloadClip() {
@@ -377,7 +457,7 @@ export default {
 
     resetClip() {
       this.showClip = false
-      this.clipl = 10
+      this.clipL = 10
       this.clipT = 10
       this.clipW = 200
       this.clipH = 200
@@ -414,6 +494,10 @@ export default {
         ctx.globalAlpha = this.textAlpha
         ctx.fillStyle = this.textColors.hex
         ctx.font = this.textFz + 'px ' + this.textFm
+        ctx.shadowBlur = this.shadowBlur
+        ctx.shadowColor = this.shadowColors.hex
+        ctx.shadowOffsetX = this.shadowX
+        ctx.shadowOffsetY = this.shadowY
         ctx.fillText(this.textText, left, top)
         this.resetText()
         this.nowCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
@@ -580,6 +664,7 @@ input {
       box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);
       label {
         margin-left: 7px;
+        position: relative;
       }
     }
     .toolbar.text-enhance {
@@ -594,10 +679,14 @@ input {
       .color-picker {
         position: absolute;
         z-index: 100;
+        left: 0;
       }
     }
     .toolbar.clip-enhance {
       line-height: 32px;
+      input.clip-input {
+        width: 50px;
+      }
     }
   }
   .panel {
@@ -656,6 +745,53 @@ input {
         cursor: pointer;
         border-style: dashed;
         border-color: #fff;
+        .clip-point {
+          position: absolute;
+          width: 10px;
+          height: 10px;
+          border-radius: 100%;
+          background: #20a0ff;
+          &:first-of-type {
+            left: 0;
+            top: 0;
+            transform: translateX(-50%) translateY(-50%);
+          }
+          &:nth-of-type(2) {
+            left: 50%;
+            top: 0;
+            transform: translateX(-50%) translateY(-50%);
+          }
+          &:nth-of-type(3) {
+            right: 0;
+            top: 0;
+            transform: translateX(50%) translateY(-50%);
+          }
+          &:nth-of-type(4) {
+            left: 0;
+            top: 50%;
+            transform: translateX(-50%) translateY(-50%);
+          }
+          &:nth-of-type(5) {
+            top: 50%;
+            right: 0;
+            transform: translateX(50%) translateY(-50%);
+          }
+          &:nth-of-type(6) {
+            bottom: 0;
+            left: 0;
+            transform: translateX(-50%) translateY(50%);
+          }
+          &:nth-of-type(7) {
+            left: 50%;
+            bottom: 0;
+            transform: translateX(-50%) translateY(50%);
+          }
+          &:nth-of-type(8) {
+            right: 0;
+            bottom: 0;
+            transform: translateX(50%) translateY(50%);
+          }
+        }
       }
     }
   }
