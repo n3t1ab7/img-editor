@@ -9,9 +9,15 @@ let getElemOffset = function(parent, child) {
     left: childOffsetToView.left + window.pageXOffset,
     top: childOffsetToView.top + window.pageYOffset
   }
+  let left = childOffsetToPage.left - parentOffsetToPage.left
+  let top = childOffsetToPage.top - parentOffsetToPage.top
+  let right = parentOffsetToView.width - (left + childOffsetToView.width)
+  let bottom = parentOffsetToView.height - (top + childOffsetToView.height)
   return {
-    left: childOffsetToPage.left - parentOffsetToPage.left,
-    top: childOffsetToPage.top - parentOffsetToPage.top
+    left: left,
+    top: top,
+    right: right,
+    bottom: bottom
   }
 }
 
@@ -25,9 +31,15 @@ let getPointerToElem = function(ev, elem) {
     left: elemOffsetToView.left + window.pageXOffset,
     top: elemOffsetToView.top + window.pageYOffset
   }
+  let left = pointerOffset.left - elemOffsetToView.left
+  let top = pointerOffset.top - elemOffsetToView.top
+  let right = elemOffsetToView.width - left
+  let bottom = elemOffsetToView.height - top
   return {
-    left: pointerOffset.left - elemOffsetToView.left,
-    top: pointerOffset.top - elemOffsetToView.top
+    left: left,
+    top: top,
+    right: right,
+    bottom: bottom
   }
 }
 

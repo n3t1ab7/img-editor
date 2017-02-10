@@ -1,8 +1,8 @@
 <template>
   <div class="toolbar funcbar" :style="style">
     <div class="menu">
-      <btn @click="toggleText"><i class="icon">&#xe633;</i></btn>
-      <btn @click="toggleClip"><i class="icon">&#xe600;</i></btn>
+      <btn @click="toggleText"><i class="icon">&#xe633;</i>文本</btn>
+      <btn @click="toggleClip"><i class="icon">&#xe600;</i>裁剪</btn>
     </div>
     <button class="main-btn download" @click="download">导出</button>
     <button class="main-btn reset" @click="reset">重置</button>

@@ -44,11 +44,11 @@
         <div class="menu">
           <button class="main-btn" @click="downloadClip">导出裁剪</button>
           <label>
-            X
+            水平
             <input type="number" class="clip-input" v-model="clipL" />
           </label>
           <label>
-            Y
+            垂直
             <input type="number" class="clip-input" v-model="clipT" />
           </label>
           <label>
@@ -63,19 +63,15 @@
       </div>
     </div>
     <div class="panel" :style="editSty">
-      <canvas :width="canvasW" :height="canvasH"></canvas>
+      <canvas :width="canvasW" :height="canvasH" ref="canvas"></canvas>
       <div class="mask" :style="editSty" @drop="drop" @dragover="dragover" @click="maskClick">
         <dropnotice :isShow="!canPaint" />
-        <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" @keypress="textKeyPress" draggable="false" v-model="textText"></textarea>
-        <div class="clipbox" :style="clipSty" :class="clipCla" @mousedown="clipMouseDown">
-          <span class="clip-point"></span>
-          <span class="clip-point"></span>
-          <span class="clip-point"></span>
-          <span class="clip-point"></span>
-          <span class="clip-point"></span>
-          <span class="clip-point"></span>
-          <span class="clip-point"></span>
-          <span class="clip-point"></span>
+        <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" @keypress="textKeyPress" draggable="false" v-model="textText" ref="text"></textarea>
+        <div class="clipbox" :style="clipSty" :class="clipCla" @mousedown="clipMouseDown" ref="clip">
+          <span class="clip-point" @mousedown="pointMouseDown('LT')"></span>
+          <span class="clip-point" @mousedown="pointMouseDown('RT')"></span>
+          <span class="clip-point" @mousedown="pointMouseDown('LB')"></span>
+          <span class="clip-point" @mousedown="pointMouseDown('RB')"></span>
         </div>
       </div>
     </div>
@@ -108,9 +104,9 @@ export default {
   data() {
     return {
       // init main style 
-      toolWrapperH: 70,
       toolWrapperMargin: 10,
-      toolBarH: 30,
+      toolBarH: 40,
+      enhanceBarH: 30,
       toolBarMargin: 10,
 
       naturalW: this.width,
@@ -135,11 +131,20 @@ export default {
 
 
       // clip style
+      clipBorderW: 1,
       clipW: 200,
       clipH: 200,
       clipL: 10,
       clipT: 10,
-      clipBorderW: 1,
+      clipR: null,
+      clipB: null,
+
+      clipStopL: null,
+      clipStopT: null,
+      clipStopR: null,
+      clipStopB: null,
+      clipStopW: null,
+      clipStopH: null,
 
       // action state
       canPaint: false,
@@ -165,13 +170,18 @@ export default {
 
       // clip state
       clipToPointer: null,
-      clipIsBeyond: false,
       clipCanDrag: false,
+      clipPointCanDrag: false,
+      clipLTPointCanDrag: false,
+      clipRTPointCanDrag: false,
+      clipLBPointCanDrag: false,
+      clipRBPointCanDrag: false,
 
       // data
       nowImgUrl: '',
       initCtxData: null,
-      nowCtxData: null
+      nowCtxData: null,
+      ctx: null
     }
   },
 
@@ -180,7 +190,7 @@ export default {
     textFz(val, old) {
       let beyond
       this.textW = computeTextW(this.textText, val, this.textCurrentAlignRatio, this.textMinW)
-      beyond = getElemOffset(this.canvas, this.text).left + this.textW - this.canvasW
+      beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
       if (beyond > 0) {
         this.textFz = old
         this.textIsBeyond = true
@@ -197,13 +207,13 @@ export default {
     imageEditorSty() {
       return {
         width: this.naturalW + 'px',
-        height: (this.naturalH + this.toolWrapperH + this.toolBarMargin) + 'px'
+        height: (this.naturalH + this.toolWrapperMargin + this.toolBarH + this.enhanceBarH + this.toolBarMargin) + 'px'
       }
     },
 
     toolWrapperSty() {
       return {
-        height: this.toolWrapperH + 'px',
+        height: this.toolBarH + this.enhanceBarH + this.toolBarMargin + 'px',
         marginBottom: this.toolWrapperMargin + 'px'
       }
     },
@@ -217,7 +227,7 @@ export default {
 
     enhanceSty() {
       return {
-        height: this.toolBarH + 'px'
+        height: this.enhanceBarH + 'px'
       }
     },
 
@@ -244,7 +254,7 @@ export default {
         top: this.textT + 'px',
         color: this.textColors.hex,
         width: this.textW + 'px',
-        height: parseFloat(this.textFz) + this.textHeightPadding + 'px',
+        height: this.textFz + this.textHeightPadding + 'px',
         fontSize: this.textFz + 'px',
         fontFamily: this.textFm,
         opacity: this.textAlpha,
@@ -270,8 +280,10 @@ export default {
         borderWidth: this.clipBorderW + 'px',
         height: this.clipH + 'px',
         width: this.clipW + 'px',
-        top: this.clipT + 'px',
-        left: this.clipL + 'px',
+        top: (this.clipLTPointCanDrag || this.clipRTPointCanDrag) ? 'auto' : this.clipT + 'px',
+        left: (this.clipLTPointCanDrag || this.clipLBPointCanDrag) ? 'auto' : this.clipL + 'px',
+        right: ((this.clipRTPointCanDrag || this.clipRBPointCanDrag) || (this.clipR === null)) ? 'auto' : this.clipR + 'px',
+        bottom: ((this.clipLBPointCanDrag || this.clipRBPointCanDrag) || (this.clipB === null)) ? 'auto' : this.clipB + 'px',
         backgroundImage: 'url(' + this.nowImgUrl + ')',
         backgroundPosition: (-this.clipL - this.clipBorderW) + 'px ' + (-this.clipT - this.clipBorderW) + 'px'
       }
@@ -363,7 +375,7 @@ export default {
 
     textMouseDown(e) {
       this.textCanDrag = true
-      this.textToPointer = getPointerToElem(e, this.text)
+      this.textToPointer = getPointerToElem(e, this.$refs.text)
     },
 
     textDouble() {
@@ -381,11 +393,11 @@ export default {
       let beyond, countWillRemove
       this.textCurrentAlignRatio = this.textLAlignRatio
       this.textW = computeTextW(this.textText, this.textFz, this.textCurrentAlignRatio, this.textMinW)
-      beyond = getElemOffset(this.canvas, this.text).left + this.textW - this.canvasW
+      beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
       if (beyond > 0) {
-        countWillRemove = Math.floor((beyond / (parseFloat(this.textFz) * this.textCurrentAlignRatio)))
+        countWillRemove = Math.floor((beyond / (this.textFz * this.textCurrentAlignRatio)))
         this.textText = this.textText.slice(0, this.textText.length - countWillRemove - 1)
-        this.textW = this.textW - parseFloat(this.textFz) * this.textCurrentAlignRatio * (countWillRemove + 1)
+        this.textW = this.textW - this.textFz * this.textCurrentAlignRatio * (countWillRemove + 1)
         this.textIsBeyond = true
       }
       else {
@@ -426,9 +438,7 @@ export default {
       this.shadowX = 0
       this.shadowBlur = 0
       this.textAlpha = 1
-
     },
-
 
     // clip
     toggleClip() {
@@ -445,7 +455,7 @@ export default {
     },
 
     clipMouseDown(e) {
-      this.clipToPointer = getPointerToElem(e, this.clip)
+      this.clipToPointer = getPointerToElem(e, this.$refs.clip)
       if (e.target.className !== 'clip-point') {
         this.clipCanDrag = true
       }
@@ -455,12 +465,55 @@ export default {
       this.outPut(this.clipL, this.clipT, this.clipW, this.clipH)
     },
 
+    pointMouseDown(name) {
+      let offset = getElemOffset(this.$refs.canvas, this.$refs.clip)
+      this.clipPointCanDrag = true
+      this.clipStopW = this.clipW
+      this.clipStopH = this.clipH
+      switch (name) {
+        case 'LT':
+          this.clipLTPointCanDrag = true
+          this.clipR = offset.right
+          this.clipB = offset.bottom
+          this.clipStopL = offset.left
+          this.clipStopT = offset.top
+          break;
+        case 'RT':
+          this.clipRTPointCanDrag = true
+          this.clipL = offset.left
+          this.clipB = offset.bottom
+          this.clipStopR = offset.right
+          this.clipStopT = offset.top
+          break;
+        case 'LB':
+          this.clipLBPointCanDrag = true
+          this.clipR = offset.right
+          this.clipT = offset.top
+          this.clipStopL = offset.left
+          this.clipStopB = offset.bottom
+          break;
+        case 'RB':
+          this.clipRBPointCanDrag = true
+          this.clipL = offset.left
+          this.clipT = offset.top
+          this.clipStopR = offset.right
+          this.clipStopB = offset.bottom
+          break;
+      }
+    },
+
     resetClip() {
       this.showClip = false
       this.clipL = 10
       this.clipT = 10
       this.clipW = 200
       this.clipH = 200
+      this.clipR = null
+      this.clipB = null
+      this.clipStopL = null
+      this.clipStopT = null
+      this.clipStopW = null
+      this.clipStopH = null
     },
 
     // mask
@@ -472,8 +525,12 @@ export default {
     // reset and download
     reset() {
       if (!this.canPaint) return false
-      this.resetText()
-      this.resetClip()
+      if (this.showText) {
+        this.resetText()
+      }
+      if (this.showClip) {
+        this.resetClip()
+      }
       this.ctx.putImageData(this.initCtxData, 0, 0)
       this.nowImgUrl = ctxDataToImgUrl(this.initCtxData, 0, 0, this.canvasW, this.canvasH)
     },
@@ -489,7 +546,7 @@ export default {
       let ctx, left, top, data
       if (this.showText && this.textContenteditable) {
         left = this.textL
-        top = this.textT + parseFloat(this.textFz)
+        top = this.textT + this.textFz
         ctx = this.ctx
         ctx.globalAlpha = this.textAlpha
         ctx.fillStyle = this.textColors.hex
@@ -520,16 +577,13 @@ export default {
     let d = document
     let offset, left, top, beyond
 
-    this.text = this.$el.getElementsByClassName('textarea')[0]
-    this.clip = this.$el.getElementsByClassName('clipbox')[0]
-    this.canvas = this.$el.getElementsByTagName('canvas')[0]
-    this.ctx = this.canvas.getContext('2d');
+    this.ctx = this.$refs.canvas.getContext('2d');
 
     ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) => d.addEventListener(name, (e) => e.preventDefault()))
 
     d.addEventListener('mousemove', (e) => {
-      offset = getPointerToElem(e, this.canvas)
       if (this.textCanDrag) {
+        offset = getPointerToElem(e, this.$refs.canvas)
         left = offset.left - this.textToPointer.left
         top = offset.top - this.textToPointer.top
         if (left >= 0 && left <= this.canvasW - parseFloat(this.textSty.width)) {
@@ -538,12 +592,13 @@ export default {
         if (top >= 0 && top <= this.canvasH - parseFloat(this.textSty.height)) {
           this.textT = top
         }
-        beyond = getElemOffset(this.canvas, this.text).left + this.textW - this.canvasW
+        beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
         if (beyond <= 0) {
           this.textIsBeyond = false
         }
       }
       if (this.clipCanDrag) {
+        offset = getPointerToElem(e, this.$refs.canvas)
         left = offset.left - this.clipToPointer.left
         top = offset.top - this.clipToPointer.top
         if (left >= 0 && left <= this.canvasW - parseFloat(this.clipSty.width)) {
@@ -552,9 +607,48 @@ export default {
         if (top >= 0 && top <= this.canvasH - parseFloat(this.clipSty.height)) {
           this.clipT = top
         }
-        beyond = getElemOffset(this.canvas, this.clip).left + this.clipW - this.canvasW
-        if (beyond <= 0) {
-          this.clipIsBeyond = false
+      }
+      if (this.clipPointCanDrag) {
+        offset = getPointerToElem(e, this.$refs.canvas)
+        if (this.clipLTPointCanDrag) {
+          if (offset.left >= 0) {
+            this.clipL = offset.left
+            this.clipW = this.clipStopL - offset.left + this.clipStopW
+          }
+          if (offset.top >= 0) {
+            this.clipT = offset.top
+            this.clipH = this.clipStopT - offset.top + this.clipStopH
+          }
+        }
+        if (this.clipRTPointCanDrag) {
+          if (offset.right >= 0) {
+            this.clipR = offset.right
+            this.clipW = this.clipStopR - offset.right + this.clipStopW
+          }
+          if (offset.top >= 0) {
+            this.clipT = offset.top
+            this.clipH = this.clipStopT - offset.top + this.clipStopH
+          }
+        }
+        if (this.clipLBPointCanDrag) {
+          if (offset.left >= 0) {
+            this.clipL = offset.left
+            this.clipW = this.clipStopL - offset.left + this.clipStopW
+          }
+          if (offset.bottom >= 0) {
+            this.clipB = offset.bottom
+            this.clipH = this.clipStopB - offset.bottom + this.clipStopH
+          }
+        }
+        if (this.clipRBPointCanDrag) {
+          if (offset.right >= 0) {
+            this.clipR = offset.right
+            this.clipW = this.clipStopR - offset.right + this.clipStopW
+          }
+          if (offset.bottom >= 0) {
+            this.clipB = offset.bottom
+            this.clipH = this.clipStopB - offset.bottom + this.clipStopH
+          }
         }
       }
     })
@@ -562,6 +656,11 @@ export default {
     d.addEventListener('mouseup', () => {
       this.textCanDrag = false
       this.clipCanDrag = false
+      this.clipPointCanDrag = false
+      this.clipLTPointCanDrag = false
+      this.clipLBPointCanDrag = false
+      this.clipRTPointCanDrag = false
+      this.clipRBPointCanDrag = false
     })
   }
 }
@@ -599,6 +698,10 @@ button {
   box-sizing: border-box;
   background: #fff;
   margin-left: 5px;
+  transition: opacity 300ms;
+  &:hover {
+    opacity: 0.8;
+  }
 }
 
 input {
@@ -609,6 +712,16 @@ input {
   width: 30px;
   text-align: center;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
 }
 
 #image-editor {
@@ -633,17 +746,37 @@ input {
       }
     }
     .toolbar.funcbar {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+      border: 1px solid #eaeaea;
+      background: #f5f7f9;
+      border-radius: 9px;
+      box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);
       * {
         box-sizing: border-box;
         padding: 0;
         margin: 0;
       }
+      .icon {
+        font-size: 12px;
+      }
       button {
         margin-left: 10px;
+        font-size: 12px;
+      }
+      .main-btn {
+        margin-top: 6px;
+        &:nth-of-type(1) {
+          margin-right: 7px;
+        }
       }
       .menu {
-        line-height: 27px;
+        line-height: 38px;
+        margin-left: 7px;
         button {
+          margin-top: 0;
+          background: transparent;
           &:first-of-type {
             margin-left: 0;
           }
@@ -701,6 +834,7 @@ input {
       position: absolute;
       top: 0;
       left: 0;
+      border-radius: 2px;
     }
     .mask {
       z-index: 50;
@@ -720,7 +854,7 @@ input {
         position: absolute;
         overflow: hidden;
         background: transparent;
-        border-radius: 1px;
+        border-radius: 2px;
         border: 2px dashed #fff;
         resize: none;
         outline: none;
@@ -745,6 +879,7 @@ input {
         cursor: pointer;
         border-style: dashed;
         border-color: #fff;
+        border-radius: 2px;
         .clip-point {
           position: absolute;
           width: 10px;
@@ -757,36 +892,16 @@ input {
             transform: translateX(-50%) translateY(-50%);
           }
           &:nth-of-type(2) {
-            left: 50%;
+            right: 0;
             top: 0;
-            transform: translateX(-50%) translateY(-50%);
+            transform: translateX(50%) translateY(-50%);
           }
           &:nth-of-type(3) {
-            right: 0;
-            top: 0;
-            transform: translateX(50%) translateY(-50%);
+            bottom: 0;
+            left: 0;
+            transform: translateX(-50%) translateY(50%);
           }
           &:nth-of-type(4) {
-            left: 0;
-            top: 50%;
-            transform: translateX(-50%) translateY(-50%);
-          }
-          &:nth-of-type(5) {
-            top: 50%;
-            right: 0;
-            transform: translateX(50%) translateY(-50%);
-          }
-          &:nth-of-type(6) {
-            bottom: 0;
-            left: 0;
-            transform: translateX(-50%) translateY(50%);
-          }
-          &:nth-of-type(7) {
-            left: 50%;
-            bottom: 0;
-            transform: translateX(-50%) translateY(50%);
-          }
-          &:nth-of-type(8) {
             right: 0;
             bottom: 0;
             transform: translateX(50%) translateY(50%);
