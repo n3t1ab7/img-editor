@@ -13,11 +13,11 @@
           </label>
           <label>
             字号
-            <input type="number" class="font-size-input" v-model="textFz" min="5" />
+            <input type="number" v-model="textFz" min="5" />
           </label>
           <label>
             不透明度
-            <input type="number" v-model="textAlpha" class="alpha-input" step="0.1" min="0" max="1" />
+            <input type="number" v-model="textAlpha" step="0.1" min="0" max="1" />
           </label>
           <label>
             阴影水平偏移
@@ -422,8 +422,8 @@ export default {
       this.textFz = 22
       this.textFm = 'sans-serif'
       this.textShowColorPicker = false
-      this.shadowOffsetY = 0
-      this.shadowOffsetX = 0
+      this.shadowY = 0
+      this.shadowX = 0
       this.shadowBlur = 0
       this.textAlpha = 1
 
