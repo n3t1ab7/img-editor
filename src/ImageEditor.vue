@@ -868,7 +868,7 @@ input[type="number"] {
         }
         &.abled {
           text-align: left;
-          cursor: auto;
+          cursor: text;
         }
         &.onborder {
           border-color: red;
@@ -886,10 +886,12 @@ input[type="number"] {
           height: 10px;
           border-radius: 100%;
           background: #20a0ff;
+          cursor: move;
           &:first-of-type {
             left: 0;
             top: 0;
             transform: translateX(-50%) translateY(-50%);
+            cursor: move;
           }
           &:nth-of-type(2) {
             right: 0;
