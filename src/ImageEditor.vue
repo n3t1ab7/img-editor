@@ -81,8 +81,8 @@
 import {
   getElemOffset,
   getPointerToElem,
-  computeTextW,
-  ctxDataToImgUrl
+  ctxDataToImgUrl,
+  computeTextW
 }
 from './utils.js'
 import funcbar from './components/func.vue'
@@ -118,6 +118,7 @@ export default {
       textW: 0,
       textFz: 22,
       textFm: 'sans-serif',
+      textBorder: 2,
       textColors: {
         hex: "#ffffff"
       },
@@ -129,7 +130,6 @@ export default {
       shadowX: 0,
       shadowY: 0,
 
-
       // clip style
       clipBorderW: 1,
       clipW: 200,
@@ -139,34 +139,23 @@ export default {
       clipR: null,
       clipB: null,
 
-      clipStopL: null,
-      clipStopT: null,
-      clipStopR: null,
-      clipStopB: null,
-      clipStopW: null,
-      clipStopH: null,
-
       // action state
       canPaint: false,
       showText: false,
       showClip: false,
+
+      // text-enhance state 
+      textShowColorPicker: false,
+      textShowShadowColorPicker: false,
 
       //text state
       textContenteditable: false,
       textCanDrag: false,
       textInitText: '双击编辑',
       textText: '',
-      textLAlignRatio: 1.04,
-      textCAlignRatio: 1.5,
-      textCurrentAlignRatio: 1,
-      textHeightPadding: 10,
       textMinW: 100,
-      textIsBeyond: false,
       textToPointer: null,
-
-      // text-enhance state 
-      textShowColorPicker: false,
-      textShowShadowColorPicker: false,
+      textCanInput: true,
 
       // clip state
       clipToPointer: null,
@@ -176,6 +165,12 @@ export default {
       clipRTPointCanDrag: false,
       clipLBPointCanDrag: false,
       clipRBPointCanDrag: false,
+      clipStopL: null,
+      clipStopT: null,
+      clipStopR: null,
+      clipStopB: null,
+      clipStopW: null,
+      clipStopH: null,
 
       // data
       nowImgUrl: '',
@@ -185,19 +180,18 @@ export default {
     }
   },
 
-  // something bad
   watch: {
     textFz(val, old) {
-      let beyond
-      this.textW = computeTextW(this.textText, val, this.textCurrentAlignRatio, this.textMinW)
-      beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
-      if (beyond > 0) {
-        this.textFz = old
-        this.textIsBeyond = true
-      }
-      else {
-        this.textIsBeyond = false
-      }
+      let beyondW, beyondH
+      this.setCtxText()
+      this.textW = computeTextW(this.ctx, this.textText, this.textMinW) + (this.textBorder * 2)
+      this.$nextTick(function() {
+        beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
+        beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.canvasH
+        if (beyondW > 0 || beyondH > 0) {
+          this.textFz = old
+        }
+      })
     }
   },
 
@@ -254,7 +248,8 @@ export default {
         top: this.textT + 'px',
         color: this.textColors.hex,
         width: this.textW + 'px',
-        height: this.textFz + this.textHeightPadding + 'px',
+        height: this.textFz * 1.4285 + 'px',
+        borderW: this.textBorder + 'px',
         fontSize: this.textFz + 'px',
         fontFamily: this.textFm,
         opacity: this.textAlpha,
@@ -368,8 +363,8 @@ export default {
       else {
         this.showText = true
         this.textText = this.textInitText
-        this.textCurrentAlignRatio = this.textCAlignRatio
-        this.textW = computeTextW(this.textText, this.textFz, this.textCurrentAlignRatio, this.textMinW)
+        this.setCtxText()
+        this.textW = computeTextW(this.ctx, this.textText, this.textMinW) + (this.textBorder * 2)
       }
     },
 
@@ -381,28 +376,26 @@ export default {
     textDouble() {
       this.textContenteditable = true
       this.textText = ''
-      this.textCurrentAlignRatio = this.textLAlignRatio
-      this.textW = computeTextW(this.textText, this.textFz, this.textCurrentAlignRatio, this.textMinW)
+      this.textW = computeTextW(this.ctx, this.textText, this.textMinW) + (this.textBorder * 2)
     },
 
     textKeyPress(e) {
       if (e.key == 'Enter') e.preventDefault()
     },
 
-    textInput() {
+    textWBeyondHandler() {
       let beyond, countWillRemove
-      this.textCurrentAlignRatio = this.textLAlignRatio
-      this.textW = computeTextW(this.textText, this.textFz, this.textCurrentAlignRatio, this.textMinW)
       beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
       if (beyond > 0) {
-        countWillRemove = Math.floor((beyond / (this.textFz * this.textCurrentAlignRatio)))
+        countWillRemove = Math.floor((beyond / (this.textW / this.textText.length)))
         this.textText = this.textText.slice(0, this.textText.length - countWillRemove - 1)
-        this.textW = this.textW - this.textFz * this.textCurrentAlignRatio * (countWillRemove + 1)
-        this.textIsBeyond = true
+        this.textW = computeTextW(this.ctx, this.textText, this.textMinW) + (this.textBorder * 2)
       }
-      else {
-        this.textIsBeyond = false
-      }
+    },
+
+    textInput() {
+      this.textW = computeTextW(this.ctx, this.textText, this.textMinW) + (this.textBorder * 2)
+      this.textWBeyondHandler()
     },
 
     toggleColorPicker() {
@@ -421,12 +414,21 @@ export default {
       this.shadowColors.hex = val.hex
     },
 
+    setCtxText() {
+      let ctx = this.ctx
+      ctx.globalAlpha = this.textAlpha
+      ctx.fillStyle = this.textColors.hex
+      ctx.font = this.textFz + 'px ' + this.textFm
+      ctx.shadowBlur = this.shadowBlur
+      ctx.shadowColor = this.shadowColors.hex
+      ctx.shadowOffsetX = this.shadowX
+      ctx.shadowOffsetY = this.shadowY
+    },
+
     resetText() {
       this.showText = false
       this.textContenteditable = false
-      this.textIsBeyond = false
       this.textText = ""
-      this.textCurrentAlignRatio = 1
       this.textL = 10
       this.textT = 10
       this.textColors.hex = '#ffffff'
@@ -543,23 +545,21 @@ export default {
     // paint
     paint() {
       // textArea
-      let ctx, left, top, data
       if (this.showText && this.textContenteditable) {
-        left = this.textL
-        top = this.textT + this.textFz
-        ctx = this.ctx
-        ctx.globalAlpha = this.textAlpha
-        ctx.fillStyle = this.textColors.hex
-        ctx.font = this.textFz + 'px ' + this.textFm
-        ctx.shadowBlur = this.shadowBlur
-        ctx.shadowColor = this.shadowColors.hex
-        ctx.shadowOffsetX = this.shadowX
-        ctx.shadowOffsetY = this.shadowY
-        ctx.fillText(this.textText, left, top)
-        this.resetText()
+        this.paintText()
         this.nowCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
         this.nowImgUrl = ctxDataToImgUrl(this.nowCtxData, 0, 0, this.canvasW, this.canvasH)
       }
+    },
+
+    paintText() {
+      let ctx, left, top, data
+      this.setCtxText()
+      left = this.textL + this.textBorder
+      top = this.textT + this.textBorder + this.textFz
+      ctx = this.ctx
+      ctx.fillText(this.textText, left, top)
+      this.resetText()
     },
 
     // output
@@ -859,9 +859,6 @@ input[type="number"] {
         resize: none;
         outline: none;
         user-select: none;
-        &.beyond {
-          border-color: red;
-        }
         &.disabled {
           text-align: center;
           cursor: pointer;
@@ -869,9 +866,6 @@ input[type="number"] {
         &.abled {
           text-align: left;
           cursor: text;
-        }
-        &.onborder {
-          border-color: red;
         }
       }
       .clipbox {

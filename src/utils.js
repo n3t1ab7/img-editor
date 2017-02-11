@@ -43,8 +43,9 @@ let getPointerToElem = function(ev, elem) {
   }
 }
 
-let computeTextW = function(text, size, ratio, min) {
-  let result = text.length * size * ratio
+let computeTextW = function(ctx, text, min) {
+  let result
+  result = ctx.measureText(text).width
   return result > min ? result : min
 }
 
