@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "fabric": "^1.7.3",
+    "stackblur-canvas": "^1.4.0",
     "vue": "^2.1.0",
     "vue-color": "^2.0.5"
   },

@@ -1,7 +1,7 @@
 <template>
   <div id="image-editor" :style="imageEditorSty">
     <div class="toolbar-wrapper" :style="toolWrapperSty">
-      <funcbar :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @download="download" @reset="reset" />
+      <funcbar :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @toggleBlur="toggleBlur" @download="download" @reset="reset" />
       <div class="toolbar enhance text-enhance" :style="enhanceSty" :class="textEnhanceCla">
         <div class="menu">
           <label>
@@ -28,7 +28,7 @@
             <input type="number" v-model="shadowY" />
           </label>
           <label>
-            模糊半径
+            阴影模糊半径
             <input type="number" v-model="shadowBlur" />
           </label>
           <label>
@@ -42,7 +42,7 @@
       </div>
       <div class="toolbar enhance clip-enhance" :style="enhanceSty" :class="clipEnhanceCla">
         <div class="menu">
-          <button class="main-btn" @click="downloadClip">导出裁剪</button>
+          <button class="main-btn" @click="downloadClip">裁剪并导出</button>
           <label>
             水平
             <input type="number" class="clip-input" v-model="clipL" />
@@ -58,6 +58,18 @@
           <label>
             高度
             <input type="number" class="clip-input" v-model="clipH" />
+          </label>
+        </div>
+      </div>
+      <div class="toolbar enhance blur-enhance" :style="enhanceSty" :class="blurEnhanceCla">
+        <div class="menu">
+          <label>
+            模糊度
+          </label>
+        </div>
+        <div class="menu">
+          <label>
+            <input type="range" class="blur-input" :style="blurRangeSty" :value="blur" @input="blurInput" />
           </label>
         </div>
       </div>
@@ -82,7 +94,8 @@ import {
   getElemOffset,
   getPointerToElem,
   ctxDataToImgUrl,
-  computeTextW
+  computeTextW,
+  copyImageData
 }
 from './utils.js'
 import funcbar from './components/func.vue'
@@ -91,6 +104,7 @@ import {
   Chrome
 }
 from 'vue-color'
+import StackBlur from 'stackblur-canvas'
 
 export default {
   name: 'image-editor',
@@ -143,10 +157,7 @@ export default {
       canPaint: false,
       showText: false,
       showClip: false,
-
-      // text-enhance state 
-      textShowColorPicker: false,
-      textShowShadowColorPicker: false,
+      showBlur: false,
 
       //text state
       textContenteditable: false,
@@ -156,6 +167,10 @@ export default {
       textMinW: 100,
       textToPointer: null,
       textCanInput: true,
+
+      // text-enhance state 
+      textShowColorPicker: false,
+      textShowShadowColorPicker: false,
 
       // clip state
       clipToPointer: null,
@@ -171,6 +186,11 @@ export default {
       clipStopB: null,
       clipStopW: null,
       clipStopH: null,
+
+      // blur state
+      blur: 0,
+      blurRangeW: 100,
+      blurMax: 5,
 
       // data
       nowImgUrl: '',
@@ -229,7 +249,7 @@ export default {
       return {
         width: this.naturalW + 'px',
         height: this.naturalH + 'px',
-        backgroundColor: this.showClip ? 'rgba(0,0,0,0.6)' : 'transparent'
+        backgroundColor: this.showClip ? 'rgba(0,0,0,0.5)' : 'transparent'
       }
     },
 
@@ -284,6 +304,12 @@ export default {
       }
     },
 
+    blurRangeSty() {
+      return {
+        width: this.blurRangeW + 'px'
+      }
+    },
+
     // class
     // class text
     colorPickerCla() {
@@ -323,6 +349,16 @@ export default {
       return {
         hide: !this.showClip
       }
+    },
+
+    blurEnhanceCla() {
+      return {
+        hide: !this.showBlur
+      }
+    },
+    // state
+    blurRation() {
+      return this.blurRangeW / this.blurMax
     }
   },
 
@@ -345,7 +381,8 @@ export default {
         this.$nextTick(function() {
           this.ctx.drawImage(img, 0, 0)
           this.canPaint = true
-          this.nowCtxData = this.initCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
+          this.nowCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
+          this.initCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
         })
       }
       img.src = this.nowImgUrl
@@ -356,6 +393,9 @@ export default {
       if (!this.canPaint) return false
       if (this.showClip) {
         this.resetClip()
+      }
+      if (this.showBlur) {
+        this.resetBlur()
       }
       if (this.showText) {
         this.resetText()
@@ -446,7 +486,13 @@ export default {
     toggleClip() {
       if (!this.canPaint) return false
       if (this.showText) {
+        this.paint()
         this.resetText()
+      }
+      if (this.showBlur) {
+        this.nowCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
+        this.nowImgUrl = ctxDataToImgUrl(this.nowCtxData, 0, 0, this.canvasW, this.canvasH)
+        this.resetBlur()
       }
       if (this.showClip) {
         this.resetClip()
@@ -518,10 +564,48 @@ export default {
       this.clipStopH = null
     },
 
+    // blur
+    toggleBlur() {
+      if (!this.canPaint) return false
+      if (this.showText) {
+        this.paint()
+        this.resetText()
+      }
+      if (this.showClip) {
+        this.resetClip()
+      }
+      if (this.showBlur) {
+        this.resetBlur()
+        this.ctx.putImageData(this.nowCtxData, 0, 0)
+      } else {
+        this.showBlur = true
+        this.nowCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
+      }
+    },
+
+    blurInput(e) {
+      this.blur = e.target.value
+      let r = Math.floor(e.target.value / this.blurRation)
+      let coped = copyImageData(this.nowCtxData)
+      let now
+      if (r) {
+        now = StackBlur.imageDataRGBA(coped, 0, 0, this.canvasW, this.canvasH, r)
+        this.ctx.putImageData(now, 0, 0)
+      } else {
+        this.ctx.putImageData(this.nowCtxData, 0, 0)
+      }
+    },
+
+    resetBlur() {
+      this.showBlur = false
+      this.blur = 0
+    },
+
     // mask
     maskClick(e) {
       if (e.target.className !== 'mask') return false
       this.paint()
+      this.resetText()
     },
 
     // reset and download
@@ -533,8 +617,10 @@ export default {
       if (this.showClip) {
         this.resetClip()
       }
+      if (this.showBlur) {
+        this.resetBlur()
+      }
       this.ctx.putImageData(this.initCtxData, 0, 0)
-      this.nowImgUrl = ctxDataToImgUrl(this.initCtxData, 0, 0, this.canvasW, this.canvasH)
     },
 
     download() {
@@ -559,7 +645,6 @@ export default {
       top = this.textT + this.textBorder + this.textFz
       ctx = this.ctx
       ctx.fillText(this.textText, left, top)
-      this.resetText()
     },
 
     // output
@@ -763,7 +848,7 @@ input[type="number"] {
       }
       button {
         margin-left: 10px;
-        font-size: 12px;
+        font-size: 13px;
       }
       .main-btn {
         margin-top: 6px;
@@ -819,6 +904,17 @@ input[type="number"] {
       line-height: 32px;
       input.clip-input {
         width: 50px;
+      }
+    }
+    .toolbar.blur-enhance {
+      .menu:first-of-type {
+        line-height: 30px;
+      }
+      .menu:nth-of-type(2) {
+        line-height: 40px;
+        input.blur-input {
+          box-shadow: none;
+        }
       }
     }
   }

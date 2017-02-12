@@ -60,9 +60,16 @@ let ctxDataToImgUrl = function(data, x, y, w, h) {
   return result
 }
 
+let copyImageData = function(data) {
+  var temp = new ImageData(data.width, data.height)
+  temp.data.set(data.data)
+  return temp
+}
+
 export {
   getElemOffset,
   getPointerToElem,
   computeTextW,
-  ctxDataToImgUrl
+  ctxDataToImgUrl,
+  copyImageData
 }

@@ -3,6 +3,7 @@
     <div class="menu">
       <btn @click="toggleText"><i class="icon">&#xe633;</i>文本</btn>
       <btn @click="toggleClip"><i class="icon">&#xe600;</i>裁剪</btn>
+      <btn @click="toggleBlur"><i class="icon">&#xe67d;</i>模糊</btn>
     </div>
     <button class="main-btn download" @click="download">导出</button>
     <button class="main-btn reset" @click="reset">重置</button>
@@ -30,6 +31,9 @@ export default {
     },
     toggleClip() {
       this.$emit('toggleClip')
+    },
+    toggleBlur(){
+      this.$emit('toggleBlur')
     },
     download() {
       this.$emit('download')
