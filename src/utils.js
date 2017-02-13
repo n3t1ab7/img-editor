@@ -43,33 +43,7 @@ let getPointerToElem = function(ev, elem) {
   }
 }
 
-let computeTextW = function(ctx, text, min) {
-  let result
-  result = ctx.measureText(text).width
-  return result > min ? result : min
-}
-
-let ctxDataToImgUrl = function(data, x, y, w, h) {
-  let canvas = document.createElement('canvas'),
-    ctx, result
-  canvas.width = w
-  canvas.height = h
-  ctx = canvas.getContext('2d')
-  ctx.putImageData(data, -x, -y)
-  result = canvas.toDataURL()
-  return result
-}
-
-let copyImageData = function(data) {
-  var temp = new ImageData(data.width, data.height)
-  temp.data.set(data.data)
-  return temp
-}
-
 export {
   getElemOffset,
-  getPointerToElem,
-  computeTextW,
-  ctxDataToImgUrl,
-  copyImageData
+  getPointerToElem
 }

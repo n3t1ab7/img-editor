@@ -69,14 +69,14 @@
         </div>
         <div class="menu">
           <label>
-            <input type="range" class="blur-input" :style="blurRangeSty" :value="blur" @input="blurInput" />
+            <input type="range" class="blur-input" :style="blurRangeSty" v-model="blur" @input="blurInput" />
           </label>
         </div>
       </div>
     </div>
     <div class="panel" :style="editSty">
       <canvas :width="canvasW" :height="canvasH" ref="canvas"></canvas>
-      <div class="mask" :style="editSty" @drop="drop" @dragover="dragover" @click="maskClick">
+      <div class="mask" :style="editSty" @drop.prevent="drop" @click="maskClick">
         <dropnotice :isShow="!canPaint" />
         <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" @keypress="textKeyPress" draggable="false" v-model="textText" ref="text"></textarea>
         <div class="clipbox" :style="clipSty" :class="clipCla" @mousedown="clipMouseDown" ref="clip">
@@ -93,9 +93,6 @@
 import {
   getElemOffset,
   getPointerToElem,
-  ctxDataToImgUrl,
-  computeTextW,
-  copyImageData
 }
 from './utils.js'
 import funcbar from './components/func.vue'
@@ -104,7 +101,7 @@ import {
   Chrome
 }
 from 'vue-color'
-import StackBlur from 'stackblur-canvas'
+import Ctx from './Ctx.js'
 
 export default {
   name: 'image-editor',
@@ -190,12 +187,9 @@ export default {
       // blur state
       blur: 0,
       blurRangeW: 100,
-      blurMax: 5,
+      blurMax: 10,
 
       // data
-      nowImgUrl: '',
-      initCtxData: null,
-      nowCtxData: null,
       ctx: null
     }
   },
@@ -203,8 +197,7 @@ export default {
   watch: {
     textFz(val, old) {
       let beyondW, beyondH
-      this.setCtxText()
-      this.textW = computeTextW(this.ctx, this.textText, this.textMinW) + (this.textBorder * 2)
+      this.textW = this.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
       this.$nextTick(function() {
         beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
         beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.canvasH
@@ -299,7 +292,7 @@ export default {
         left: (this.clipLTPointCanDrag || this.clipLBPointCanDrag) ? 'auto' : this.clipL + 'px',
         right: ((this.clipRTPointCanDrag || this.clipRBPointCanDrag) || (this.clipR === null)) ? 'auto' : this.clipR + 'px',
         bottom: ((this.clipLBPointCanDrag || this.clipRBPointCanDrag) || (this.clipB === null)) ? 'auto' : this.clipB + 'px',
-        backgroundImage: 'url(' + this.nowImgUrl + ')',
+        backgroundImage: this.ctx === null ? 'none' : 'url(' + this.ctx.nowImgUrl + ')',
         backgroundPosition: (-this.clipL - this.clipBorderW) + 'px ' + (-this.clipT - this.clipBorderW) + 'px'
       }
     },
@@ -364,48 +357,34 @@ export default {
 
   methods: {
     // upload image
-    dragover(e) {
-      e.preventDefault()
-    },
-
     drop(e) {
       if (this.canPaint) return false
-      let file, img, imgForComputeWH
-      e.preventDefault()
+      let file, img, url
       file = e.dataTransfer.files[0]
-      this.nowImgUrl = URL.createObjectURL(file)
+      url = URL.createObjectURL(file)
       img = new Image()
       img.onload = () => {
         this.naturalW = img.width
         this.naturalH = img.height
         this.$nextTick(function() {
-          this.ctx.drawImage(img, 0, 0)
           this.canPaint = true
-          this.nowCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
-          this.initCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
+          this.ctx = new Ctx(this.$refs.canvas);
+          this.ctx.put(img)
         })
       }
-      img.src = this.nowImgUrl
+      img.src = url
     },
+
+
 
     // text
     toggleText() {
       if (!this.canPaint) return false
-      if (this.showClip) {
-        this.resetClip()
-      }
-      if (this.showBlur) {
-        this.resetBlur()
-      }
-      if (this.showText) {
-        this.resetText()
-      }
-      else {
-        this.showText = true
-        this.textText = this.textInitText
-        this.setCtxText()
-        this.textW = computeTextW(this.ctx, this.textText, this.textMinW) + (this.textBorder * 2)
-      }
+      this.resetFunc()
+      this.ctx.saveBlur()
+      this.showText = true
+      this.textText = this.textInitText
+      this.textW = this.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
     },
 
     textMouseDown(e) {
@@ -416,7 +395,7 @@ export default {
     textDouble() {
       this.textContenteditable = true
       this.textText = ''
-      this.textW = computeTextW(this.ctx, this.textText, this.textMinW) + (this.textBorder * 2)
+      this.textW = this.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
     },
 
     textKeyPress(e) {
@@ -429,12 +408,12 @@ export default {
       if (beyond > 0) {
         countWillRemove = Math.floor((beyond / (this.textW / this.textText.length)))
         this.textText = this.textText.slice(0, this.textText.length - countWillRemove - 1)
-        this.textW = computeTextW(this.ctx, this.textText, this.textMinW) + (this.textBorder * 2)
+        this.textW = this.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
       }
     },
 
     textInput() {
-      this.textW = computeTextW(this.ctx, this.textText, this.textMinW) + (this.textBorder * 2)
+      this.textW = this.textW = this.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
       this.textWBeyondHandler()
     },
 
@@ -454,17 +433,6 @@ export default {
       this.shadowColors.hex = val.hex
     },
 
-    setCtxText() {
-      let ctx = this.ctx
-      ctx.globalAlpha = this.textAlpha
-      ctx.fillStyle = this.textColors.hex
-      ctx.font = this.textFz + 'px ' + this.textFm
-      ctx.shadowBlur = this.shadowBlur
-      ctx.shadowColor = this.shadowColors.hex
-      ctx.shadowOffsetX = this.shadowX
-      ctx.shadowOffsetY = this.shadowY
-    },
-
     resetText() {
       this.showText = false
       this.textContenteditable = false
@@ -482,24 +450,15 @@ export default {
       this.textAlpha = 1
     },
 
+
+
     // clip
     toggleClip() {
       if (!this.canPaint) return false
-      if (this.showText) {
-        this.paint()
-        this.resetText()
-      }
-      if (this.showBlur) {
-        this.nowCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
-        this.nowImgUrl = ctxDataToImgUrl(this.nowCtxData, 0, 0, this.canvasW, this.canvasH)
-        this.resetBlur()
-      }
-      if (this.showClip) {
-        this.resetClip()
-      }
-      else {
-        this.showClip = true
-      }
+      this.paintText()
+      this.ctx.saveBlur()
+      this.resetFunc()
+      this.showClip = true
     },
 
     clipMouseDown(e) {
@@ -510,7 +469,7 @@ export default {
     },
 
     downloadClip() {
-      this.outPut(this.clipL, this.clipT, this.clipW, this.clipH)
+      this.ctx.download(this.clipL, this.clipT, this.clipW, this.clipH)
     },
 
     pointMouseDown(name) {
@@ -564,36 +523,22 @@ export default {
       this.clipStopH = null
     },
 
+
+
+
     // blur
     toggleBlur() {
       if (!this.canPaint) return false
-      if (this.showText) {
-        this.paint()
-        this.resetText()
-      }
-      if (this.showClip) {
-        this.resetClip()
-      }
-      if (this.showBlur) {
-        this.resetBlur()
-        this.ctx.putImageData(this.nowCtxData, 0, 0)
-      } else {
-        this.showBlur = true
-        this.nowCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
-      }
+      this.paintText()
+      this.resetText()
+      this.resetClip()
+      this.showBlur = true
+      this.ctx.resetBlur()
     },
 
     blurInput(e) {
-      this.blur = e.target.value
-      let r = Math.floor(e.target.value / this.blurRation)
-      let coped = copyImageData(this.nowCtxData)
-      let now
-      if (r) {
-        now = StackBlur.imageDataRGBA(coped, 0, 0, this.canvasW, this.canvasH, r)
-        this.ctx.putImageData(now, 0, 0)
-      } else {
-        this.ctx.putImageData(this.nowCtxData, 0, 0)
-      }
+      let r = e.target.value / this.blurRation
+      this.ctx.tempBlur(r)
     },
 
     resetBlur() {
@@ -601,16 +546,18 @@ export default {
       this.blur = 0
     },
 
+
+
+
     // mask
     maskClick(e) {
       if (e.target.className !== 'mask') return false
-      this.paint()
+      this.paintText()
       this.resetText()
     },
 
     // reset and download
-    reset() {
-      if (!this.canPaint) return false
+    resetFunc() {
       if (this.showText) {
         this.resetText()
       }
@@ -620,41 +567,27 @@ export default {
       if (this.showBlur) {
         this.resetBlur()
       }
-      this.ctx.putImageData(this.initCtxData, 0, 0)
+    },
+
+    reset() {
+      if (!this.canPaint) return false
+      this.resetFunc()
+      this.ctx.resetBlur()
+      this.ctx.reset()
     },
 
     download() {
       if (!this.canPaint) return false
-      this.outPut(0, 0, this.canvasW, this.canvasH)
+      this.ctx.download()
     },
 
     // paint
-    paint() {
-      // textArea
-      if (this.showText && this.textContenteditable) {
-        this.paintText()
-        this.nowCtxData = this.ctx.getImageData(0, 0, this.canvasW, this.canvasH)
-        this.nowImgUrl = ctxDataToImgUrl(this.nowCtxData, 0, 0, this.canvasW, this.canvasH)
-      }
-    },
-
     paintText() {
-      let ctx, left, top, data
-      this.setCtxText()
-      left = this.textL + this.textBorder
-      top = this.textT + this.textBorder + this.textFz
-      ctx = this.ctx
-      ctx.fillText(this.textText, left, top)
-    },
-
-    // output
-    outPut(x, y, w, h) {
-      let a, url
-      a = document.createElement('a')
-      url = ctxDataToImgUrl(this.nowCtxData, x, y, w, h)
-      a.href = url
-      a.download = String(+(new Date))
-      a.click()
+      if (this.textContenteditable) {
+        let left = this.textL + this.textBorder
+        let top = this.textT + this.textBorder + this.textFz
+        this.ctx.text(this.textText, left, top, this.textColors.hex, this.textFz, this.textFm, this.textAlpha, this.shadowBlur, this.shadowColors.hex, this.shadowX, this.shadowY)
+      }
     }
   },
 
@@ -662,9 +595,7 @@ export default {
     let d = document
     let offset, left, top, beyond
 
-    this.ctx = this.$refs.canvas.getContext('2d');
-
-    ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) => d.addEventListener(name, (e) => e.preventDefault()))
+      ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) => document.body.addEventListener(name, (e) => e.preventDefault()))
 
     d.addEventListener('mousemove', (e) => {
       if (this.textCanDrag) {
