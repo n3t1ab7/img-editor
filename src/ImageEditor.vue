@@ -1,7 +1,7 @@
 <template>
   <div id="image-editor" :style="imageEditorSty">
     <div class="toolbar-wrapper" :style="toolWrapperSty">
-      <funcbar :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @toggleBlur="toggleBlur" @download="download" @reset="reset" />
+      <funcbar :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @toggleBlur="toggleBlur" @toggleMosaic="toggleMosaic" @download="download" @reset="reset" />
       <div class="toolbar enhance text-enhance" :style="enhanceSty" :class="textEnhanceCla">
         <div class="menu">
           <label>
@@ -73,14 +73,38 @@
           </label>
         </div>
       </div>
+      <div class="toolbar enhance mosaic-enhance" :style="enhanceSty" :class="mosaicEnhanceCla">
+        <div class="menu">
+          <label>
+            水平
+            <input type="number" v-model="mosaicL" />
+          </label>
+          <label>
+            垂直
+            <input type="number" v-model="mosaicT" />
+          </label>
+          <label>
+            宽度
+            <input type="number" v-model="mosaicW" />
+          </label>
+          <label>
+            高度
+            <input type="number" v-model="mosaicH" />
+          </label>
+        </div>
+      </div>
     </div>
     <div class="panel" :style="editSty">
       <canvas :width="canvasW" :height="canvasH" ref="canvas"></canvas>
+      <canvas :width="canvasW" :height="canvasH" ref="mosaicCanvas" :class="{hide:true}"></canvas>
       <div class="mask" :style="editSty" @drop.prevent="drop" @click="maskClick">
         <dropnotice :isShow="!canPaint" />
         <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" @keypress="textKeyPress" draggable="false" v-model="textText" ref="text"></textarea>
         <box :show="showClip" :width="clipW" :height="clipH" :left="clipL" :top="clipT" :borderW="clipBorderW" :canvasW="canvasW" :canvasH="canvasH" :canDrag="clipCanDrag" :canvas="$refs.canvas" @change="boxChange">
           <div :style="clipSty"></div>
+        </box>
+        <box :show="showMosaic" :width="mosaicW" :height="mosaicH" :left="mosaicL" :top="mosaicT" :borderW="mosaicBorderW" :canvasW="canvasW" :canvasH="canvasH" :canDrag="mosaicCanDrag" :canvas="$refs.canvas" @change="mosaicChange">
+          <canvas :width="mosaicW" :heigh="mosaicH"></canvas>
         </box>
       </div>
     </div>
@@ -147,11 +171,19 @@ export default {
       clipL: 10,
       clipT: 10,
 
+      // mosaic style 
+      mosaicBorderW: 1,
+      mosaicW: 200,
+      mosaicH: 200,
+      mosaicL: 10,
+      mosaicT: 10,
+
       // action state
       canPaint: false,
       showText: false,
       showClip: false,
       showBlur: false,
+      showMosaic: false,
 
       //text state
       textContenteditable: false,
@@ -171,8 +203,12 @@ export default {
       blurRangeW: 100,
       blurMax: 10,
 
+      // mosaic state
+      mosaicCanDrag: false,
+
       // data
-      ctx: null
+      ctx: null,
+      mosaicCtx: null
     }
   },
 
@@ -225,7 +261,7 @@ export default {
       return {
         width: this.canvasW + 'px',
         height: this.canvasH + 'px',
-        backgroundColor: this.showClip ? 'rgba(0,0,0,' + this.maskOpacity + ')' : 'transparent'
+        backgroundColor: (this.showClip) ? 'rgba(0,0,0,' + this.maskOpacity + ')' : 'transparent'
       }
     },
 
@@ -318,6 +354,12 @@ export default {
         hide: !this.showBlur
       }
     },
+
+    mosaicEnhanceCla() {
+      return {
+        hide: !this.showMosaic
+      }
+    },
     // state
     blurRation() {
       return this.blurRangeW / this.blurMax
@@ -334,7 +376,7 @@ export default {
       img = new Image()
       img.onload = () => {
         this.canvasW = img.width
-        this.canvaslH = img.height
+        this.canvasH = img.height
         this.$nextTick(function() {
           this.canPaint = true
           this.ctx = new Ctx(this.$refs.canvas);
@@ -449,6 +491,7 @@ export default {
       this.paintText()
       this.resetText()
       this.resetClip()
+      this.resetMosaic()
       this.showBlur = true
       this.ctx.resetBlur()
     },
@@ -461,6 +504,31 @@ export default {
     resetBlur() {
       this.showBlur = false
       this.blur = 0
+    },
+
+    // mosaic
+    toggleMosaic() {
+      if (!this.canPaint) return false
+      this.resetFunc()
+      this.ctx.saveBlur()
+      this.showMosaic = true
+      this.mosaicCtx = new Ctx(this.$refs.mosaicCanvas)
+      this.mosaicCtx.put(this.ctx.get())
+    },
+
+    mosaicChange(status) {
+      this.mosaicW = status.width
+      this.mosaicH = status.height
+      this.mosaicL = status.left
+      this.mosaicT = status.top
+    },
+
+    resetMosaic() {
+      this.showMosaic = false
+      this.mosaicL = 10
+      this.mosaicT = 10
+      this.mosaicW = 200
+      this.mosaicH = 200
     },
 
     // mask
@@ -480,6 +548,9 @@ export default {
       }
       if (this.showBlur) {
         this.resetBlur()
+      }
+      if (this.showMosaic) {
+        this.resetMosaic()
       }
     },
 
@@ -710,6 +781,11 @@ input {
         input.blur-input {
           box-shadow: none;
         }
+      }
+    }
+    .toolbar.blur-enhance {
+      .menu {
+        line-height: 30px;
       }
     }
   }
