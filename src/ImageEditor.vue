@@ -79,12 +79,9 @@
       <div class="mask" :style="editSty" @drop.prevent="drop" @click="maskClick">
         <dropnotice :isShow="!canPaint" />
         <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" @keypress="textKeyPress" draggable="false" v-model="textText" ref="text"></textarea>
-        <div class="clipbox" :style="clipSty" :class="clipCla" @mousedown="clipMouseDown" ref="clip">
-          <span class="clip-point" @mousedown="pointMouseDown('LT')"></span>
-          <span class="clip-point" @mousedown="pointMouseDown('RT')"></span>
-          <span class="clip-point" @mousedown="pointMouseDown('LB')"></span>
-          <span class="clip-point" @mousedown="pointMouseDown('RB')"></span>
-        </div>
+        <box :show="showClip" :width="clipW" :height="clipH" :left="clipL" :top="clipT" :borderW="clipBorderW" :canvasW="canvasW" :canvasH="canvasH" :canDrag="clipCanDrag" :canvas="$refs.canvas" @change="boxChange">
+          <div :style="clipSty"></div>
+        </box>
       </div>
     </div>
   </div>
@@ -97,6 +94,7 @@ import {
 from './utils.js'
 import funcbar from './components/func.vue'
 import dropnotice from './components/drop-notice.vue'
+import box from './components/box.vue'
 import {
   Chrome
 }
@@ -110,7 +108,8 @@ export default {
   components: {
     'color-picker': Chrome,
     funcbar: funcbar,
-    dropnotice: dropnotice
+    dropnotice: dropnotice,
+    box: box
   },
   data() {
     return {
@@ -122,6 +121,8 @@ export default {
 
       naturalW: this.width,
       naturalH: this.height,
+
+      maskOpacity: 0.5,
 
       // text style
       textL: 10,
@@ -147,8 +148,6 @@ export default {
       clipH: 200,
       clipL: 10,
       clipT: 10,
-      clipR: null,
-      clipB: null,
 
       // action state
       canPaint: false,
@@ -170,19 +169,7 @@ export default {
       textShowShadowColorPicker: false,
 
       // clip state
-      clipToPointer: null,
       clipCanDrag: false,
-      clipPointCanDrag: false,
-      clipLTPointCanDrag: false,
-      clipRTPointCanDrag: false,
-      clipLBPointCanDrag: false,
-      clipRBPointCanDrag: false,
-      clipStopL: null,
-      clipStopT: null,
-      clipStopR: null,
-      clipStopB: null,
-      clipStopW: null,
-      clipStopH: null,
 
       // blur state
       blur: 0,
@@ -242,7 +229,7 @@ export default {
       return {
         width: this.naturalW + 'px',
         height: this.naturalH + 'px',
-        backgroundColor: this.showClip ? 'rgba(0,0,0,0.5)' : 'transparent'
+        backgroundColor: this.showClip ? 'rgba(0,0,0,' + this.maskOpacity + ')' : 'transparent'
       }
     },
 
@@ -285,13 +272,8 @@ export default {
     // style clip
     clipSty() {
       return {
-        borderWidth: this.clipBorderW + 'px',
-        height: this.clipH + 'px',
-        width: this.clipW + 'px',
-        top: (this.clipLTPointCanDrag || this.clipRTPointCanDrag) ? 'auto' : this.clipT + 'px',
-        left: (this.clipLTPointCanDrag || this.clipLBPointCanDrag) ? 'auto' : this.clipL + 'px',
-        right: ((this.clipRTPointCanDrag || this.clipRBPointCanDrag) || (this.clipR === null)) ? 'auto' : this.clipR + 'px',
-        bottom: ((this.clipLBPointCanDrag || this.clipRBPointCanDrag) || (this.clipB === null)) ? 'auto' : this.clipB + 'px',
+        width: this.clipW - this.clipBorderW * 2 + 'px',
+        height: this.clipH - this.clipBorderW * 2 + 'px',
         backgroundImage: this.ctx === null ? 'none' : 'url(' + this.ctx.nowImgUrl + ')',
         backgroundPosition: (-this.clipL - this.clipBorderW) + 'px ' + (-this.clipT - this.clipBorderW) + 'px'
       }
@@ -321,8 +303,7 @@ export default {
       return {
         hide: !this.showText,
         abled: this.textContenteditable,
-        disabled: !this.textContenteditable,
-        beyond: this.textIsBeyond
+        disabled: !this.textContenteditable
       }
     },
 
@@ -374,8 +355,6 @@ export default {
       }
       img.src = url
     },
-
-
 
     // text
     toggleText() {
@@ -450,8 +429,6 @@ export default {
       this.textAlpha = 1
     },
 
-
-
     // clip
     toggleClip() {
       if (!this.canPaint) return false
@@ -461,52 +438,15 @@ export default {
       this.showClip = true
     },
 
-    clipMouseDown(e) {
-      this.clipToPointer = getPointerToElem(e, this.$refs.clip)
-      if (e.target.className !== 'clip-point') {
-        this.clipCanDrag = true
-      }
+    boxChange(status) {
+      this.clipW = status.width
+      this.clipH = status.height
+      this.clipL = status.left
+      this.clipT = status.top
     },
 
     downloadClip() {
       this.ctx.download(this.clipL, this.clipT, this.clipW, this.clipH)
-    },
-
-    pointMouseDown(name) {
-      let offset = getElemOffset(this.$refs.canvas, this.$refs.clip)
-      this.clipPointCanDrag = true
-      this.clipStopW = this.clipW
-      this.clipStopH = this.clipH
-      switch (name) {
-        case 'LT':
-          this.clipLTPointCanDrag = true
-          this.clipR = offset.right
-          this.clipB = offset.bottom
-          this.clipStopL = offset.left
-          this.clipStopT = offset.top
-          break;
-        case 'RT':
-          this.clipRTPointCanDrag = true
-          this.clipL = offset.left
-          this.clipB = offset.bottom
-          this.clipStopR = offset.right
-          this.clipStopT = offset.top
-          break;
-        case 'LB':
-          this.clipLBPointCanDrag = true
-          this.clipR = offset.right
-          this.clipT = offset.top
-          this.clipStopL = offset.left
-          this.clipStopB = offset.bottom
-          break;
-        case 'RB':
-          this.clipRBPointCanDrag = true
-          this.clipL = offset.left
-          this.clipT = offset.top
-          this.clipStopR = offset.right
-          this.clipStopB = offset.bottom
-          break;
-      }
     },
 
     resetClip() {
@@ -515,16 +455,7 @@ export default {
       this.clipT = 10
       this.clipW = 200
       this.clipH = 200
-      this.clipR = null
-      this.clipB = null
-      this.clipStopL = null
-      this.clipStopT = null
-      this.clipStopW = null
-      this.clipStopH = null
     },
-
-
-
 
     // blur
     toggleBlur() {
@@ -545,9 +476,6 @@ export default {
       this.showBlur = false
       this.blur = 0
     },
-
-
-
 
     // mask
     maskClick(e) {
@@ -593,7 +521,7 @@ export default {
 
   mounted() {
     let d = document
-    let offset, left, top, beyond
+    let offset, left, top
 
       ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) => document.body.addEventListener(name, (e) => e.preventDefault()))
 
@@ -608,75 +536,11 @@ export default {
         if (top >= 0 && top <= this.canvasH - parseFloat(this.textSty.height)) {
           this.textT = top
         }
-        beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
-        if (beyond <= 0) {
-          this.textIsBeyond = false
-        }
-      }
-      if (this.clipCanDrag) {
-        offset = getPointerToElem(e, this.$refs.canvas)
-        left = offset.left - this.clipToPointer.left
-        top = offset.top - this.clipToPointer.top
-        if (left >= 0 && left <= this.canvasW - parseFloat(this.clipSty.width)) {
-          this.clipL = left
-        }
-        if (top >= 0 && top <= this.canvasH - parseFloat(this.clipSty.height)) {
-          this.clipT = top
-        }
-      }
-      if (this.clipPointCanDrag) {
-        offset = getPointerToElem(e, this.$refs.canvas)
-        if (this.clipLTPointCanDrag) {
-          if (offset.left >= 0) {
-            this.clipL = offset.left
-            this.clipW = this.clipStopL - offset.left + this.clipStopW
-          }
-          if (offset.top >= 0) {
-            this.clipT = offset.top
-            this.clipH = this.clipStopT - offset.top + this.clipStopH
-          }
-        }
-        if (this.clipRTPointCanDrag) {
-          if (offset.right >= 0) {
-            this.clipR = offset.right
-            this.clipW = this.clipStopR - offset.right + this.clipStopW
-          }
-          if (offset.top >= 0) {
-            this.clipT = offset.top
-            this.clipH = this.clipStopT - offset.top + this.clipStopH
-          }
-        }
-        if (this.clipLBPointCanDrag) {
-          if (offset.left >= 0) {
-            this.clipL = offset.left
-            this.clipW = this.clipStopL - offset.left + this.clipStopW
-          }
-          if (offset.bottom >= 0) {
-            this.clipB = offset.bottom
-            this.clipH = this.clipStopB - offset.bottom + this.clipStopH
-          }
-        }
-        if (this.clipRBPointCanDrag) {
-          if (offset.right >= 0) {
-            this.clipR = offset.right
-            this.clipW = this.clipStopR - offset.right + this.clipStopW
-          }
-          if (offset.bottom >= 0) {
-            this.clipB = offset.bottom
-            this.clipH = this.clipStopB - offset.bottom + this.clipStopH
-          }
-        }
       }
     })
 
     d.addEventListener('mouseup', () => {
       this.textCanDrag = false
-      this.clipCanDrag = false
-      this.clipPointCanDrag = false
-      this.clipLTPointCanDrag = false
-      this.clipLBPointCanDrag = false
-      this.clipRTPointCanDrag = false
-      this.clipRBPointCanDrag = false
     })
   }
 }
@@ -895,13 +759,13 @@ input[type="number"] {
           cursor: text;
         }
       }
-      .clipbox {
+      .box {
         position: absolute;
         cursor: pointer;
         border-style: dashed;
         border-color: #fff;
         border-radius: 2px;
-        .clip-point {
+        .point {
           position: absolute;
           width: 10px;
           height: 10px;
