@@ -107,9 +107,9 @@ export default {
   props: ['width', 'height'],
   components: {
     'color-picker': Chrome,
-    funcbar: funcbar,
-    dropnotice: dropnotice,
-    box: box
+    funcbar,
+    dropnotice,
+    box
   },
   data() {
     return {
@@ -118,10 +118,8 @@ export default {
       toolBarH: 40,
       enhanceBarH: 30,
       toolBarMargin: 10,
-
-      naturalW: this.width,
-      naturalH: this.height,
-
+      canvasW: this.width,
+      canvasH: this.height,
       maskOpacity: 0.5,
 
       // text style
@@ -162,9 +160,6 @@ export default {
       textText: '',
       textMinW: 100,
       textToPointer: null,
-      textCanInput: true,
-
-      // text-enhance state 
       textShowColorPicker: false,
       textShowShadowColorPicker: false,
 
@@ -184,7 +179,8 @@ export default {
   watch: {
     textFz(val, old) {
       let beyondW, beyondH
-      this.textW = this.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
+      this.textW = this.ctx.textW(
+        this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
       this.$nextTick(function() {
         beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
         beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.canvasH
@@ -200,8 +196,8 @@ export default {
     // style outer
     imageEditorSty() {
       return {
-        width: this.naturalW + 'px',
-        height: (this.naturalH + this.toolWrapperMargin + this.toolBarH + this.enhanceBarH + this.toolBarMargin) + 'px'
+        width: this.canvasW + 'px',
+        height: (this.canvasH + this.toolWrapperMargin + this.toolBarH + this.enhanceBarH + this.toolBarMargin) + 'px'
       }
     },
 
@@ -227,18 +223,10 @@ export default {
 
     editSty() {
       return {
-        width: this.naturalW + 'px',
-        height: this.naturalH + 'px',
+        width: this.canvasW + 'px',
+        height: this.canvasH + 'px',
         backgroundColor: this.showClip ? 'rgba(0,0,0,' + this.maskOpacity + ')' : 'transparent'
       }
-    },
-
-    canvasH() {
-      return this.naturalH
-    },
-
-    canvasW() {
-      return this.naturalW
     },
 
     // style text
@@ -345,8 +333,8 @@ export default {
       url = URL.createObjectURL(file)
       img = new Image()
       img.onload = () => {
-        this.naturalW = img.width
-        this.naturalH = img.height
+        this.canvasW = img.width
+        this.canvaslH = img.height
         this.$nextTick(function() {
           this.canPaint = true
           this.ctx = new Ctx(this.$refs.canvas);
@@ -381,19 +369,17 @@ export default {
       if (e.key == 'Enter') e.preventDefault()
     },
 
-    textWBeyondHandler() {
-      let beyond, countWillRemove
-      beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
-      if (beyond > 0) {
-        countWillRemove = Math.floor((beyond / (this.textW / this.textText.length)))
-        this.textText = this.textText.slice(0, this.textText.length - countWillRemove - 1)
-        this.textW = this.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
-      }
-    },
-
     textInput() {
+      let beyond, countWillRemove
       this.textW = this.textW = this.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
-      this.textWBeyondHandler()
+      this.$nextTick(function() {
+        beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
+        if (beyond > 0) {
+          countWillRemove = Math.floor((beyond / (this.textW / this.textText.length)))
+          this.textText = this.textText.slice(0, this.textText.length - countWillRemove - 1)
+          this.textW = this.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
+        }
+      })
     },
 
     toggleColorPicker() {
@@ -546,6 +532,30 @@ export default {
 }
 </script>
 <style lang="scss">
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 10px;
+  width: 10px;
+  border-radius: 100%;
+  background: #20a0ff;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type=range] {
+  -webkit-appearance: none;
+  height: 0;
+  background: #20a0ff;
+}
+
 @font-face {
   font-family: 'icon';
   src: url('./assert/iconfont.ttf');
@@ -592,16 +602,6 @@ input {
   width: 30px;
   text-align: center;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
-}
-
-input::-webkit-outer-spin-button,
-input::-webkit-inner-spin-button {
-  -webkit-appearance: none !important;
-  margin: 0;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield;
 }
 
 #image-editor {
@@ -706,7 +706,7 @@ input[type="number"] {
         line-height: 30px;
       }
       .menu:nth-of-type(2) {
-        line-height: 40px;
+        line-height: 27px;
         input.blur-input {
           box-shadow: none;
         }
