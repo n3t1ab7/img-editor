@@ -43,7 +43,15 @@ let getPointerToElem = function(ev, elem) {
   }
 }
 
+
+let copy = function(data) {
+  var temp = new ImageData(data.width, data.height)
+  temp.data.set(data.data)
+  return temp
+}
+
 export {
   getElemOffset,
-  getPointerToElem
+  getPointerToElem,
+  copy
 }

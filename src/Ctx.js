@@ -2,11 +2,32 @@ let type = function(obj) {
   return (Object.prototype.toString.call(obj).slice(8, -1))
 }
 
-let copy = function(data) {
-  var temp = new ImageData(data.width, data.height)
-  temp.data.set(data.data)
-  return temp
+let getColorByCoord = function(imgData, { x, y }) {
+  let n, r, g, b, a
+  n = (y * imgData.width + x) * 4
+  r = imgData.data[n]
+  g = imgData.data[n + 1]
+  b = imgData.data[n + 2]
+  a = imgData.data[n + 3]
+  return { r: r, g: g, b: b, a: a }
 }
+
+let setColorByCoord = function(imgData, { r, g, b, a }, { x, y }) {
+  let n = (y * imgData.width + x) * 4
+  imgData.data[n] = r
+  imgData.data[n + 1] = g
+  imgData.data[n + 2] = b
+  imgData.data[n + 3] = a
+}
+
+let getCoord = function(imgData, i) {
+  let n = i / 4
+  return {
+    x: n % imgData.width,
+    y: Math.floor(n / imgData.width)
+  }
+}
+
 
 import StackBlur from 'stackblur-canvas'
 
@@ -16,53 +37,33 @@ export default class Ctx {
     this.ctx = canvas.getContext('2d')
     this.w = canvas.width
     this.h = canvas.height
-    this.first = true
-    this.initData = null
-    this.nowData = null
-    this.imgUrl = null
-    this.nowImgUrl = null
-    this.bluring = false
   }
 
-  put(img, x = 0, y = 0) {
+  put(x = 0, y = 0, img) {
     if (type(img) === 'HTMLImageElement') {
       this.ctx.drawImage(img, x, y)
     }
     if (type(img) === 'ImageData') {
       this.ctx.putImageData(img, x, y)
     }
-    if (this.first) {
-      this.nowData = this.initData = this.get()
-      this.nowImgUrl = this.initImgUrl = this.URL(0, 0, this.w, this.h)
-      this.first = false
-    } else if (!this.bluring) {
-      this.nowData = this.get()
-      this.nowImgUrl = this.URL(0, 0, this.w, this.h)
-    }
   }
 
-  get(w, h, x, y) {
-    if (w === undefined) w = this.w
-    if (h === undefined) h = this.h
-    if (x === undefined) x = 0
-    if (y === undefined) y = 0
+  get(x = 0, y = 0, w = this.w, h = this.h) {
     return this.ctx.getImageData(x, y, w, h)
   }
 
-  URL(x, y, w, h) {
+  url(x = 0, y = 0, w = this.w, h = this.h) {
     let canvas = document.createElement('canvas'),
-      ctx, result
-    canvas.width = w
-    canvas.height = h
-    ctx = canvas.getContext('2d')
-    ctx.putImageData(this.nowData, -x, -y)
-    result = canvas.toDataURL()
-    return result
-  }
-
-  afterPaint() {
-    this.nowData = this.get()
-    this.nowImgUrl = this.URL(0, 0, this.w, this.h)
+      ctx
+    if (x == 0 && y == 0 && w == this.w && h == this.h) {
+      return this.elem.toDataURL()
+    } else {
+      canvas.width = w
+      canvas.height = h
+      ctx = canvas.getContext('2d')
+      ctx.putImageData(this.get(), -x, -y)
+      return canvas.toDataURL()
+    }
   }
 
   text(txt, x, y, Fzcolor, fz, fm, alpha, shadowBlur, shadowColor, shadowX, shadowY) {
@@ -74,7 +75,6 @@ export default class Ctx {
     this.ctx.shadowOffsetX = shadowX
     this.ctx.shadowOffsetY = shadowY
     this.ctx.fillText(txt, x, y)
-    this.afterPaint()
   }
 
   textW(txt, fz, fm, min) {
@@ -84,45 +84,35 @@ export default class Ctx {
     return result > min ? result : min
   }
 
-  tempBlur(r) {
-    r = Math.floor(r)
-    this.bluring = true
-    let startData = copy(this.nowData),
-      now
-    if (r === 0) {
-      this.put(startData)
-    } else {
-      now = StackBlur.imageDataRGBA(startData, 0, 0, this.w, this.h, r)
-      this.put(now)
+  blur(x = 0, y = 0, w = this.w, h = this.h, r = 2) {
+    StackBlur.canvasRGBA(this.elem, x, y, w, h, r)
+  }
+
+  mosaic(x = 0, y = 0, w = this.w, h = this.h, strength = 5) {
+    let imgData = this.get(x, y, w, h)
+    let d = imgData.data
+    let width = imgData.width
+    let i = 0
+    let mx, my, c, coord, X, Y
+    while (i < d.length) {
+      coord = getCoord(imgData, i)
+      X = coord.x
+      Y = coord.y
+      mx = X - (X % strength)
+      my = Y - (Y % strength)
+      c = getColorByCoord(imgData, { x: mx, y: my })
+      setColorByCoord(imgData, c, { x: X, y: Y })
+      i += 4
     }
+    this.put(x, y, imgData)
   }
 
-  saveBlur() {
-    this.nowData = this.get()
-    this.nowImgUrl = this.URL(0, 0, this.w, this.h)
-  }
-
-  resetBlur() {
-    this.put(this.nowData)
-  }
-
-  download(x, y, w, h) {
-    this.saveBlur()
+  download(x = 0, y = 0, w = this.w, h = this.h) {
     let a, url
     a = document.createElement('a')
-    if (x === undefined) x = 0
-    if (y === undefined) y = 0
-    if (w === undefined) w = this.w
-    if (h === undefined) h = this.h
-    url = this.URL(x, y, w, h)
+    url = this.url(x, y, w, h)
     a.href = url
     a.download = String(+(new Date))
     a.click()
-  }
-
-  reset() {
-    this.put(this.initData)
-    this.nowData = this.initData
-    this.nowImgUrl = this.initImgUrl
   }
 }

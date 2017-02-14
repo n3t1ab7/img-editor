@@ -104,7 +104,7 @@
           <div :style="clipSty"></div>
         </box>
         <box :show="showMosaic" :width="mosaicW" :height="mosaicH" :left="mosaicL" :top="mosaicT" :borderW="mosaicBorderW" :canvasW="canvasW" :canvasH="canvasH" :canDrag="mosaicCanDrag" :canvas="$refs.canvas" @change="mosaicChange">
-          <canvas :width="mosaicW" :heigh="mosaicH"></canvas>
+          <div :style="mosaicSty"></div>
         </box>
       </div>
     </div>
@@ -114,6 +114,7 @@
 import {
   getElemOffset,
   getPointerToElem,
+  copy
 }
 from './utils.js'
 import funcbar from './components/func.vue'
@@ -123,7 +124,7 @@ import {
   Chrome
 }
 from 'vue-color'
-import Ctx from './Ctx.js'
+import ctx from './ctx.js'
 
 export default {
   name: 'image-editor',
@@ -205,10 +206,14 @@ export default {
 
       // mosaic state
       mosaicCanDrag: false,
-
-      // data
+      mosaicStrength: 5,
+      // data,
+      initData: null,
       ctx: null,
-      mosaicCtx: null
+      mosaicCtx: null,
+      url: null,
+      mosaicUrl: null,
+      beforeBlur: null
     }
   },
 
@@ -298,7 +303,7 @@ export default {
       return {
         width: this.clipW - this.clipBorderW * 2 + 'px',
         height: this.clipH - this.clipBorderW * 2 + 'px',
-        backgroundImage: this.ctx === null ? 'none' : 'url(' + this.ctx.nowImgUrl + ')',
+        backgroundImage: this.url === null ? 'none' : 'url(' + this.url + ')',
         backgroundPosition: (-this.clipL - this.clipBorderW) + 'px ' + (-this.clipT - this.clipBorderW) + 'px'
       }
     },
@@ -306,6 +311,15 @@ export default {
     blurRangeSty() {
       return {
         width: this.blurRangeW + 'px'
+      }
+    },
+
+    mosaicSty() {
+      return {
+        width: this.mosaicW - this.mosaicBorderW * 2 + 'px',
+        height: this.mosaicH - this.mosaicBorderW * 2 + 'px',
+        backgroundImage: this.mosaicUrl === null ? 'none' : 'url(' + this.mosaicUrl + ')',
+        backgroundPosition: (-this.mosaicL - this.mosaicBorderW) + 'px ' + (-this.mosaicT - this.mosaicBorderW) + 'px'
       }
     },
 
@@ -370,27 +384,33 @@ export default {
     // upload image
     drop(e) {
       if (this.canPaint) return false
-      let file, img, url
+      let file, img
       file = e.dataTransfer.files[0]
-      url = URL.createObjectURL(file)
+      this.url = URL.createObjectURL(file)
       img = new Image()
       img.onload = () => {
         this.canvasW = img.width
         this.canvasH = img.height
         this.$nextTick(function() {
           this.canPaint = true
-          this.ctx = new Ctx(this.$refs.canvas);
-          this.ctx.put(img)
+          this.ctx = new ctx(this.$refs.canvas);
+          this.ctx.put(0, 0, img)
+          this.initData = this.ctx.get()
         })
       }
-      img.src = url
+      img.src = this.url
     },
 
     // text
     toggleText() {
       if (!this.canPaint) return false
+      if (this.showMosaic) {
+        this.paintMosaic()
+      }
+      if (this.showBlur) {
+        this.paintBlur()
+      }
       this.resetFunc()
-      this.ctx.saveBlur()
       this.showText = true
       this.textText = this.textInitText
       this.textW = this.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
@@ -440,6 +460,15 @@ export default {
       this.shadowColors.hex = val.hex
     },
 
+    paintText() {
+      if (this.textContenteditable) {
+        let left = this.textL + this.textBorder
+        let top = this.textT + this.textBorder + this.textFz
+        this.ctx.text(this.textText, left, top, this.textColors.hex, this.textFz, this.textFm, this.textAlpha, this.shadowBlur, this.shadowColors.hex, this.shadowX, this.shadowY)
+        this.url = this.ctx.url()
+      }
+    },
+
     resetText() {
       this.showText = false
       this.textContenteditable = false
@@ -460,8 +489,16 @@ export default {
     // clip
     toggleClip() {
       if (!this.canPaint) return false
-      this.paintText()
-      this.ctx.saveBlur()
+      this.url = this.ctx.url()
+      if (this.showMosaic) {
+        this.paintMosaic()
+      }
+      if (this.showText && this.textContenteditable) {
+        this.paintText()
+      }
+      if (this.showBlur) {
+        this.paintBlur()
+      }
       this.resetFunc()
       this.showClip = true
     },
@@ -488,17 +525,26 @@ export default {
     // blur
     toggleBlur() {
       if (!this.canPaint) return false
-      this.paintText()
-      this.resetText()
-      this.resetClip()
-      this.resetMosaic()
+      if (this.showMosaic) {
+        this.paintMosaic()
+      }
+      if (this.showText && this.textContenteditable) {
+        this.paintText()
+      }
+      this.resetFunc()
       this.showBlur = true
-      this.ctx.resetBlur()
+      this.beforeBlur = this.ctx.get()
     },
 
     blurInput(e) {
-      let r = e.target.value / this.blurRation
-      this.ctx.tempBlur(r)
+      let r = Math.floor(e.target.value / this.blurRation)
+      let coped = copy(this.beforeBlur)
+      this.ctx.put(0, 0, coped)
+      this.ctx.blur(0, 0, this.canvasW, this.canvasH, r)
+    },
+
+    paintBlur() {
+      this.url = this.ctx.url()
     },
 
     resetBlur() {
@@ -509,11 +555,21 @@ export default {
     // mosaic
     toggleMosaic() {
       if (!this.canPaint) return false
+      let canvas = document.createElement('canvas')
+      if (this.showText && this.textContenteditable) {
+        this.paintText()
+      }
+      if (this.showBlur) {
+        this.paintBlur()
+      }
+      canvas.width = this.canvasW
+      canvas.height = this.canvasH
       this.resetFunc()
-      this.ctx.saveBlur()
       this.showMosaic = true
-      this.mosaicCtx = new Ctx(this.$refs.mosaicCanvas)
-      this.mosaicCtx.put(this.ctx.get())
+      this.mosaicCtx = new ctx(canvas)
+      this.mosaicCtx.put(0, 0, this.ctx.get())
+      this.mosaicCtx.mosaic(this.mosaicStrength)
+      this.mosaicUrl = this.mosaicCtx.url()
     },
 
     mosaicChange(status) {
@@ -521,6 +577,11 @@ export default {
       this.mosaicH = status.height
       this.mosaicL = status.left
       this.mosaicT = status.top
+    },
+
+    paintMosaic() {
+      this.ctx.mosaic(this.mosaicL, this.mosaicT, this.mosaicW, this.mosaicH, this.mosaicStrength)
+      this.url = this.ctx.url()
     },
 
     resetMosaic() {
@@ -534,8 +595,14 @@ export default {
     // mask
     maskClick(e) {
       if (e.target.className !== 'mask') return false
-      this.paintText()
-      this.resetText()
+      if (this.showText) {
+        this.paintText()
+        this.resetText()
+      }
+      if (this.showMosaic) {
+        this.paintMosaic()
+        this.resetMosaic()
+      }
     },
 
     // reset and download
@@ -557,22 +624,19 @@ export default {
     reset() {
       if (!this.canPaint) return false
       this.resetFunc()
-      this.ctx.resetBlur()
-      this.ctx.reset()
+      this.ctx.put(0, 0, this.initData)
+      this.mosaicCtx = null
+      this.url = null
+      this.mosaicUrl = null
+      this.beforeBlur = null
     },
 
     download() {
       if (!this.canPaint) return false
-      this.ctx.download()
-    },
-
-    // paint
-    paintText() {
-      if (this.textContenteditable) {
-        let left = this.textL + this.textBorder
-        let top = this.textT + this.textBorder + this.textFz
-        this.ctx.text(this.textText, left, top, this.textColors.hex, this.textFz, this.textFm, this.textAlpha, this.shadowBlur, this.shadowColors.hex, this.shadowX, this.shadowY)
+      if (showMosaic) {
+        this.paintMosaic()
       }
+      this.ctx.download()
     }
   },
 
