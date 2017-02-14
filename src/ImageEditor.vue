@@ -75,6 +75,7 @@
       </div>
       <div class="toolbar enhance mosaic-enhance" :style="enhanceSty" :class="mosaicEnhanceCla">
         <div class="menu">
+          <list :btns="mosaicList" @change="mosaicSelect"></list>
           <label>
             水平
             <input type="number" v-model="mosaicL" />
@@ -119,6 +120,7 @@ import {
 from './utils.js'
 import funcbar from './components/func.vue'
 import dropnotice from './components/drop-notice.vue'
+import list from './components/select.vue'
 import box from './components/box.vue'
 import {
   Chrome
@@ -134,7 +136,8 @@ export default {
     'color-picker': Chrome,
     funcbar,
     dropnotice,
-    box
+    box,
+    list
   },
   data() {
     return {
@@ -207,7 +210,9 @@ export default {
       // mosaic state
       mosaicCanDrag: false,
       mosaicStrength: 5,
-      // data,
+      mosaicList: ['轻度', '重度'],
+
+      // data
       initData: null,
       ctx: null,
       mosaicCtx: null,
@@ -579,6 +584,10 @@ export default {
       this.mosaicT = status.top
     },
 
+    mosaicSelect(name) {
+      console.log(name)
+    },
+
     paintMosaic() {
       this.ctx.mosaic(this.mosaicL, this.mosaicT, this.mosaicW, this.mosaicH, this.mosaicStrength)
       this.url = this.ctx.url()
@@ -737,6 +746,40 @@ input {
   width: 30px;
   text-align: center;
   box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
+}
+
+.select {
+  position: relative;
+  display: inline-block;
+  height: 30px;
+  width: 100px;
+  text-align: center;
+  * {
+    margin: 0;
+    padding: 0;
+  }
+  button {
+    display: block;
+    background: #f5f6fa;
+    color: #747272;
+    width: 100%;
+    height: 30px;
+    &:hover {
+      opacity: 1
+    }
+  }
+  div {
+    position: absolute;
+    z-index: 100;
+    top: 30px;
+    left: 0;
+    width: 100px;
+    button {
+      &:last-of-type {
+        border-radius: 0 0 6px 6px;
+      }
+    }
+  }
 }
 
 #image-editor {
