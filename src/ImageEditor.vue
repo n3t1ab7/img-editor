@@ -831,7 +831,7 @@ input {
       }
     }
     .toolbar.clip-enhance {
-      line-height: 32px;
+      line-height: 30px;
       input.clip-input {
         width: 50px;
       }
@@ -848,6 +848,11 @@ input {
       }
     }
     .toolbar.blur-enhance {
+      .menu {
+        line-height: 30px;
+      }
+    }
+    .toolbar.mosaic-enhance {
       .menu {
         line-height: 30px;
       }
@@ -893,6 +898,7 @@ input {
         &.disabled {
           text-align: center;
           cursor: pointer;
+          cursor: -webkit-grab;
         }
         &.abled {
           text-align: left;
@@ -902,6 +908,7 @@ input {
       .box {
         position: absolute;
         cursor: pointer;
+        cursor: -webkit-grab;
         border-style: dashed;
         border-color: #fff;
         border-radius: 2px;

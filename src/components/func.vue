@@ -4,13 +4,12 @@
       <button @click="toggleText"><i class="icon">&#xe633;</i>文本</button>
       <button @click="toggleClip"><i class="icon">&#xe600;</i>裁剪</button>
       <button @click="toggleBlur"><i class="icon">&#xe67d;</i>模糊</button>
-      <button @click="toggleMosaic"><i class="icon">&#xe67d;</i>马赛克</button>
+      <button @click="toggleMosaic"><i class="icon">&#xe6b3;</i>马赛克</button>
     </div>
     <button class="main-btn download" @click="download">导出</button>
     <button class="main-btn reset" @click="reset">重置</button>
   </div>
 </template>
-
 <script>
 export default {
   name: 'func',
@@ -30,10 +29,10 @@ export default {
     toggleClip() {
       this.$emit('toggleClip')
     },
-    toggleBlur(){
+    toggleBlur() {
       this.$emit('toggleBlur')
     },
-    toggleMosaic(){
+    toggleMosaic() {
       this.$emit('toggleMosaic')
     },
     download() {
