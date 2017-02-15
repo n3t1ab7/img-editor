@@ -1,7 +1,7 @@
 <template>
   <div id="image-editor" :style="imageEditorSty">
     <div class="toolbar-wrapper" :style="toolWrapperSty">
-      <funcbar :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @toggleBlur="toggleBlur" @toggleMosaic="toggleMosaic" @download="download" @reset="reset" />
+      <funcbar :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @toggleBlur="toggleBlur" @toggleMosaic="toggleMosaic" @toggleFigure="toggleFigure" @download="download" @reset="reset" />
       <div class="toolbar enhance text-enhance" :style="enhanceSty" :class="textEnhanceCla">
         <div class="menu">
           <label>
@@ -94,6 +94,38 @@
           </label>
         </div>
       </div>
+      <div class="toolbar enhance figure-enhance" :style="enhanceSty" :class="figureEnhanceCla">
+        <div class="menu">
+          <list :btns="figureList" v-model="figureNow" :show="showFigureSelect"></list>
+          <label>
+            颜色
+            <input type="text" readonly="true" @click="toggleFigureColorPicker" :style="colorFigureInputSty" class="color-picker-input" />
+            <div class="color-picker" :class="colorFigurePickerCla">
+              <color-picker v-model="figureColors" @change-color="onFigureColorChange"></color-picker>
+            </div>
+          </label>
+          <label>
+            不透明度
+            <input type="number" v-model="figureAlpha" step="0.1" min="0" max="1" />
+          </label>
+          <label>
+            水平
+            <input type="number" v-model="figureL" />
+          </label>
+          <label>
+            垂直
+            <input type="number" v-model="figureT" />
+          </label>
+          <label>
+            宽度
+            <input type="number" v-model="figureW" />
+          </label>
+          <label>
+            高度
+            <input type="number" v-model="figureH" />
+          </label>
+        </div>
+      </div>
     </div>
     <div class="panel" :style="editSty">
       <canvas :width="canvasW" :height="canvasH" ref="canvas"></canvas>
@@ -105,6 +137,9 @@
         </box>
         <box :show="showMosaic" :width="mosaicW" :height="mosaicH" :left="mosaicL" :top="mosaicT" :borderW="mosaicBorderW" :canvasW="canvasW" :canvasH="canvasH" :canDrag="mosaicCanDrag" :canvas="$refs.canvas" @change="mosaicChange">
           <div :style="mosaicSty"></div>
+        </box>
+        <box :show="showFigure" :width="figureW" :height="figureH" :left="figureL" :top="figureT" :borderW="figureBorderW" :canvasW="canvasW" :canvasH="canvasH" :canDrag="figureCanDrag" :canvas="$refs.canvas" @change="figureChange">
+          <div :style="figureSty"></div>
         </box>
       </div>
     </div>
@@ -181,12 +216,24 @@ export default {
       mosaicL: 10,
       mosaicT: 10,
 
+      // figure style 
+      figureBorderW: 1,
+      figureW: 200,
+      figureH: 200,
+      figureL: 10,
+      figureT: 10,
+      figureAlpha: 0.5,
+      figureColors: {
+        hex: "#9E4949"
+      },
+
       // action state
       canPaint: false,
       showText: false,
       showClip: false,
       showBlur: false,
       showMosaic: false,
+      showFigure: false,
 
       //text state
       textContenteditable: false,
@@ -219,6 +266,19 @@ export default {
       }],
       mosaicNow: 0,
       showMosaicSelect: false,
+
+      // figure state
+      figureCanDrag: false,
+      figureShowShadowColorPicker: false,
+      figureList: [{
+        name: '矩形',
+        idx: 0
+      }, {
+        name: '圆形',
+        idx: 1
+      }],
+      figureNow: 0,
+      showFigureSelect: false,
 
       // data
       initData: null,
@@ -336,6 +396,22 @@ export default {
       }
     },
 
+    figureSty() {
+      return {
+        width: this.figureW - this.figureBorderW * 2 + 'px',
+        height: this.figureH - this.figureBorderW * 2 + 'px',
+        backgroundColor: this.figureColors.hex,
+        opacity: this.figureAlpha,
+        borderRadius: this.figureNow === 0 ? '0' : '50%'
+      }
+    },
+
+    colorFigureInputSty() {
+      return {
+        background: this.figureColors.hex
+      }
+    },
+
     // class
     // class text
     colorPickerCla() {
@@ -387,6 +463,19 @@ export default {
         hide: !this.showMosaic
       }
     },
+
+    figureEnhanceCla() {
+      return {
+        hide: !this.showFigure
+      }
+    },
+
+    colorFigurePickerCla() {
+      return {
+        hide: !this.figureShowShadowColorPicker
+      }
+    },
+
     // state
     blurRation() {
       return this.blurRangeW / this.blurMax
@@ -422,6 +511,9 @@ export default {
       }
       if (this.showBlur) {
         this.paintBlur()
+      }
+      if (this.showFigure) {
+        this.paintFigure()
       }
       this.resetFunc()
       this.showText = true
@@ -512,6 +604,9 @@ export default {
       if (this.showBlur) {
         this.paintBlur()
       }
+      if (this.showFigure) {
+        this.paintFigure()
+      }
       this.resetFunc()
       this.showClip = true
     },
@@ -544,6 +639,9 @@ export default {
       if (this.showText && this.textContenteditable) {
         this.paintText()
       }
+      if (this.showFigure) {
+        this.paintFigure()
+      }
       this.resetFunc()
       this.showBlur = true
       this.beforeBlur = this.ctx.get()
@@ -573,6 +671,9 @@ export default {
       }
       if (this.showBlur) {
         this.paintBlur()
+      }
+      if (this.showFigure) {
+        this.paintFigure()
       }
       this.resetFunc()
       this.showMosaic = true
@@ -615,6 +716,61 @@ export default {
       this.showMosaicSelect = false
     },
 
+    toggleFigure() {
+      if (!this.canPaint) return false
+      if (this.showText && this.textContenteditable) {
+        this.paintText()
+      }
+      if (this.showBlur) {
+        this.paintBlur()
+      }
+      if (this.showMosaic) {
+        this.paintMosaic()
+      }
+      this.resetFunc()
+      this.showFigure = true
+    },
+
+    toggleFigureColorPicker() {
+      this.figureShowShadowColorPicker = !this.figureShowShadowColorPicker
+    },
+
+    onFigureColorChange(val) {
+      this.figureColors.hex = val.hex
+    },
+
+    figureChange(status) {
+      this.figureW = status.width
+      this.figureH = status.height
+      this.figureL = status.left
+      this.figureT = status.top
+    },
+
+    paintFigure() {
+      let arcX, arcY, arcA, acrB
+      if (this.figureNow === 0) {
+        this.ctx.rect(this.figureL, this.figureT, this.figureW, this.figureH, this.figureColors.hex, this.figureAlpha)
+      } else {
+        arcX = this.figureL + this.figureW / 2
+        arcY = this.figureT + this.figureH / 2
+        arcA = this.figureW / 2
+        acrB = this.figureH / 2
+        this.ctx.arc(arcX, arcY, arcA, acrB, this.figureColors.hex, this.figureAlpha)
+      }
+    },
+
+    resetFigure() {
+      this.showFigure = false
+      this.figureL = 10
+      this.figureT = 10
+      this.figureW = 200
+      this.figureH = 200
+      this.figureNow = 0
+      this.showFigureSelect = false
+      this.figureAlpha = 0.5
+      this.figureColors.hex = '#9E4949'
+    },
+
     // mask
     maskClick(e) {
       if (e.target.className !== 'mask') return false
@@ -625,6 +781,10 @@ export default {
       if (this.showMosaic) {
         this.paintMosaic()
         this.resetMosaic()
+      }
+      if (this.showFigure) {
+        this.paintFigure()
+        this.resetFigure()
       }
     },
 
@@ -642,6 +802,9 @@ export default {
       if (this.showMosaic) {
         this.resetMosaic()
       }
+      if (this.showFigure) {
+        this.resetFigure()
+      }
     },
 
     reset() {
@@ -656,7 +819,7 @@ export default {
 
     download() {
       if (!this.canPaint) return false
-      if (showMosaic) {
+      if (this.showMosaic) {
         this.paintMosaic()
       }
       this.ctx.download()
@@ -777,7 +940,9 @@ input {
     background: #f5f6fa;
     color: #747272;
     width: 100%;
-    height: 30px;
+    height: 20px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
     &:hover {
       opacity: 1
     }
@@ -788,10 +953,12 @@ input {
   div {
     position: absolute;
     z-index: 100;
-    top: 30px;
+    top: 20px;
     left: 0;
     width: 100px;
     button {
+      border: none;
+      border-radius: 0;
       &:last-of-type {
         border-radius: 0 0 6px 6px;
       }
@@ -915,6 +1082,21 @@ input {
     .toolbar.mosaic-enhance {
       .menu {
         line-height: 30px;
+      }
+    }
+    .toolbar.figure-enhance {
+      line-height: 33px;
+      .color-picker-input {
+        width: 12px;
+        height: 12px;
+        border-radius: 100%;
+        border: 1px solid #ccc;
+        text-align: center;
+      }
+      .color-picker {
+        position: absolute;
+        z-index: 100;
+        left: 0;
       }
     }
   }

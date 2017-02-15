@@ -36,7 +36,7 @@ export default {
     },
 
     clickBtn(e) {
-      this.$emit('input', e.target.dataset.id)
+      this.$emit('input', Number(e.target.dataset.id))
       this.$emit('change')
       this.s = !this.s
       this.now = this.btns[e.target.dataset.id]

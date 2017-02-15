@@ -40,6 +40,7 @@ export default class Ctx {
   }
 
   text(txt, x, y, Fzcolor, fz, fm, alpha, shadowBlur, shadowColor, shadowX, shadowY) {
+    this.ctx.save()
     this.ctx.globalAlpha = alpha
     this.ctx.fillStyle = Fzcolor
     this.ctx.font = fz + 'px ' + fm
@@ -48,6 +49,35 @@ export default class Ctx {
     this.ctx.shadowOffsetX = shadowX
     this.ctx.shadowOffsetY = shadowY
     this.ctx.fillText(txt, x, y)
+    this.ctx.restore()
+  }
+
+  rect(x, y, w, h, color, alpha, isStroke = false) {
+    this.ctx.save()
+    this.ctx.globalAlpha = alpha
+    if (isStroke) {
+      this.ctx.strokeStyle = color
+      this.ctx.strokeRect(x, y, w, h)
+    } else {
+      this.ctx.fillStyle = color
+      this.ctx.fillRect(x, y, w, h)
+    }
+    this.ctx.restore()
+  }
+
+  arc(x, y, a, b, color, alpha) {
+    this.ctx.save()
+    this.ctx.globalAlpha = alpha
+    this.ctx.fillStyle = color
+    let r = (a > b) ? a : b
+    let ratioX = a / r
+    let ratioY = b / r
+    this.ctx.scale(ratioX, ratioY)
+    this.ctx.beginPath()
+    this.ctx.arc(x / ratioX, y / ratioY, r, 0, 2 * Math.PI, false)
+    this.ctx.closePath()
+    this.ctx.fill()
+    this.ctx.restore()
   }
 
   textW(txt, fz, fm, min) {
