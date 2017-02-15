@@ -2,33 +2,6 @@ let type = function(obj) {
   return (Object.prototype.toString.call(obj).slice(8, -1))
 }
 
-let getColorByCoord = function(imgData, { x, y }) {
-  let n, r, g, b, a
-  n = (y * imgData.width + x) * 4
-  r = imgData.data[n]
-  g = imgData.data[n + 1]
-  b = imgData.data[n + 2]
-  a = imgData.data[n + 3]
-  return { r: r, g: g, b: b, a: a }
-}
-
-let setColorByCoord = function(imgData, { r, g, b, a }, { x, y }) {
-  let n = (y * imgData.width + x) * 4
-  imgData.data[n] = r
-  imgData.data[n + 1] = g
-  imgData.data[n + 2] = b
-  imgData.data[n + 3] = a
-}
-
-let getCoord = function(imgData, i) {
-  let n = i / 4
-  return {
-    x: n % imgData.width,
-    y: Math.floor(n / imgData.width)
-  }
-}
-
-
 import StackBlur from 'stackblur-canvas'
 
 export default class Ctx {
@@ -84,6 +57,32 @@ export default class Ctx {
     return result > min ? result : min
   }
 
+  getCoord(imgData, i) {
+    let n = i / 4
+    return {
+      x: n % imgData.width,
+      y: Math.floor(n / imgData.width)
+    }
+  }
+
+  getColorByCoord(imgData, { x, y }) {
+    let n, r, g, b, a
+    n = (y * imgData.width + x) * 4
+    r = imgData.data[n]
+    g = imgData.data[n + 1]
+    b = imgData.data[n + 2]
+    a = imgData.data[n + 3]
+    return { r: r, g: g, b: b, a: a }
+  }
+
+  setColorByCoord(imgData, { r, g, b, a }, { x, y }) {
+    let n = (y * imgData.width + x) * 4
+    imgData.data[n] = r
+    imgData.data[n + 1] = g
+    imgData.data[n + 2] = b
+    imgData.data[n + 3] = a
+  }
+
   blur(r = 2, x = 0, y = 0, w = this.w, h = this.h) {
     StackBlur.canvasRGBA(this.elem, x, y, w, h, r)
   }
@@ -95,13 +94,13 @@ export default class Ctx {
     let i = 0
     let mx, my, c, coord, X, Y
     while (i < d.length) {
-      coord = getCoord(imgData, i)
+      coord = this.getCoord(imgData, i)
       X = coord.x
       Y = coord.y
       mx = X - (X % strength)
       my = Y - (Y % strength)
-      c = getColorByCoord(imgData, { x: mx, y: my })
-      setColorByCoord(imgData, c, { x: X, y: Y })
+      c = this.getColorByCoord(imgData, { x: mx, y: my })
+      this.setColorByCoord(imgData, c, { x: X, y: Y })
       i += 4
     }
     this.put(imgData, x, y)
