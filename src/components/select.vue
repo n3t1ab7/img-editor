@@ -1,37 +1,45 @@
 <template>
   <label class="select">
-    <button @click="toggleSelect"> {{now}}</button>
+    <button @click="toggleSelect"> {{now.name}}<i class="icon">&#xe608;</i></button>
     <div :class="cla">
-      <button v-for="btn in btns" @click.stop="clickBtn" :name="btn">{{btn}}</button>
+      <button v-for="btn in btns" @click.stop="clickBtn" :data-id="btn.idx">{{btn.name}}</button>
     </div>
   </label>
 </template>
 <script>
 export default {
   name: 'list',
-  props: ['btns'],
+  props: ['btns', 'value', 'show'],
   data() {
     return {
-      show: false,
-      now: this.btns[0]
+      now: this.btns[this.value],
+      s: this.show
     }
   },
 
+  watch: {
+    value(v) {
+      this.now = this.btns[v]
+    }
+  },
   computed: {
     cla() {
       return {
-        hide: !this.show
+        hide: !this.s
       }
     }
   },
 
   methods: {
     toggleSelect() {
-      this.show = !this.show
+      this.s = !this.s
     },
 
     clickBtn(e) {
-      this.$emit('change', e.target.name)
+      this.$emit('input', e.target.dataset.id)
+      this.$emit('change')
+      this.s = !this.s
+      this.now = this.btns[e.target.dataset.id]
     }
   }
 }

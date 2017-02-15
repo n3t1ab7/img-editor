@@ -75,7 +75,7 @@
       </div>
       <div class="toolbar enhance mosaic-enhance" :style="enhanceSty" :class="mosaicEnhanceCla">
         <div class="menu">
-          <list :btns="mosaicList" @change="mosaicSelect"></list>
+          <list :btns="mosaicList" @change="mosaicSelect" v-model="mosaicNow" :show="showMosaicSelect"></list>
           <label>
             水平
             <input type="number" v-model="mosaicL" />
@@ -97,7 +97,6 @@
     </div>
     <div class="panel" :style="editSty">
       <canvas :width="canvasW" :height="canvasH" ref="canvas"></canvas>
-      <canvas :width="canvasW" :height="canvasH" ref="mosaicCanvas" :class="{hide:true}"></canvas>
       <div class="mask" :style="editSty" @drop.prevent="drop" @click="maskClick">
         <dropnotice :isShow="!canPaint" />
         <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" @keypress="textKeyPress" draggable="false" v-model="textText" ref="text"></textarea>
@@ -209,8 +208,17 @@ export default {
 
       // mosaic state
       mosaicCanDrag: false,
-      mosaicStrength: 5,
-      mosaicList: ['轻度', '重度'],
+      mosaicList: [{
+        name: '轻度',
+        value: 5,
+        idx: 0
+      }, {
+        name: '重度',
+        value: 10,
+        idx: 1
+      }],
+      mosaicNow: 0,
+      showMosaicSelect: false,
 
       // data
       initData: null,
@@ -399,7 +407,7 @@ export default {
         this.$nextTick(function() {
           this.canPaint = true
           this.ctx = new ctx(this.$refs.canvas);
-          this.ctx.put(0, 0, img)
+          this.ctx.put(img)
           this.initData = this.ctx.get()
         })
       }
@@ -544,8 +552,8 @@ export default {
     blurInput(e) {
       let r = Math.floor(e.target.value / this.blurRation)
       let coped = copy(this.beforeBlur)
-      this.ctx.put(0, 0, coped)
-      this.ctx.blur(0, 0, this.canvasW, this.canvasH, r)
+      this.ctx.put(coped)
+      this.ctx.blur(r)
     },
 
     paintBlur() {
@@ -560,21 +568,15 @@ export default {
     // mosaic
     toggleMosaic() {
       if (!this.canPaint) return false
-      let canvas = document.createElement('canvas')
       if (this.showText && this.textContenteditable) {
         this.paintText()
       }
       if (this.showBlur) {
         this.paintBlur()
       }
-      canvas.width = this.canvasW
-      canvas.height = this.canvasH
       this.resetFunc()
       this.showMosaic = true
-      this.mosaicCtx = new ctx(canvas)
-      this.mosaicCtx.put(0, 0, this.ctx.get())
-      this.mosaicCtx.mosaic(this.mosaicStrength)
-      this.mosaicUrl = this.mosaicCtx.url()
+      this.setMosaic(this.mosaicList[this.mosaicNow].value)
     },
 
     mosaicChange(status) {
@@ -584,12 +586,22 @@ export default {
       this.mosaicT = status.top
     },
 
-    mosaicSelect(name) {
-      console.log(name)
+    setMosaic(value) {
+      let canvas = document.createElement('canvas')
+      canvas.width = this.canvasW
+      canvas.height = this.canvasH
+      this.mosaicCtx = new ctx(canvas)
+      this.mosaicCtx.put(this.ctx.get())
+      this.mosaicCtx.mosaic(value)
+      this.mosaicUrl = this.mosaicCtx.url()
+    },
+
+    mosaicSelect() {
+      this.setMosaic(this.mosaicList[this.mosaicNow].value)
     },
 
     paintMosaic() {
-      this.ctx.mosaic(this.mosaicL, this.mosaicT, this.mosaicW, this.mosaicH, this.mosaicStrength)
+      this.ctx.mosaic(this.mosaicList[this.mosaicNow].value, this.mosaicL, this.mosaicT, this.mosaicW, this.mosaicH)
       this.url = this.ctx.url()
     },
 
@@ -599,6 +611,8 @@ export default {
       this.mosaicT = 10
       this.mosaicW = 200
       this.mosaicH = 200
+      this.mosaicNow = 0
+      this.showMosaicSelect = false
     },
 
     // mask
@@ -633,7 +647,7 @@ export default {
     reset() {
       if (!this.canPaint) return false
       this.resetFunc()
-      this.ctx.put(0, 0, this.initData)
+      this.ctx.put(this.initData)
       this.mosaicCtx = null
       this.url = null
       this.mosaicUrl = null
@@ -766,6 +780,9 @@ input {
     height: 30px;
     &:hover {
       opacity: 1
+    }
+    .icon {
+      position: absolute;
     }
   }
   div {

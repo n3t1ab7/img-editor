@@ -39,7 +39,7 @@ export default class Ctx {
     this.h = canvas.height
   }
 
-  put(x = 0, y = 0, img) {
+  put(img, x = 0, y = 0) {
     if (type(img) === 'HTMLImageElement') {
       this.ctx.drawImage(img, x, y)
     }
@@ -84,11 +84,11 @@ export default class Ctx {
     return result > min ? result : min
   }
 
-  blur(x = 0, y = 0, w = this.w, h = this.h, r = 2) {
+  blur(r = 2, x = 0, y = 0, w = this.w, h = this.h) {
     StackBlur.canvasRGBA(this.elem, x, y, w, h, r)
   }
 
-  mosaic(x = 0, y = 0, w = this.w, h = this.h, strength = 5) {
+  mosaic(strength = 5, x = 0, y = 0, w = this.w, h = this.h) {
     let imgData = this.get(x, y, w, h)
     let d = imgData.data
     let width = imgData.width
@@ -104,7 +104,7 @@ export default class Ctx {
       setColorByCoord(imgData, c, { x: X, y: Y })
       i += 4
     }
-    this.put(x, y, imgData)
+    this.put(imgData, x, y)
   }
 
   download(x = 0, y = 0, w = this.w, h = this.h) {
