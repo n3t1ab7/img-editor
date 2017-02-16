@@ -162,6 +162,15 @@ import {
 from 'vue-color'
 import Ctx from './ctx.js'
 
+let DATA = {
+  initData: null,
+  timeMachine: [],
+  nowStage: -1,
+  ctx: null,
+  mosaicCtx: null,
+  beforeBlur: null
+}
+
 export default {
   name: 'ImageEditor',
 
@@ -280,22 +289,16 @@ export default {
       figureNow: 0,
       showFigureSelect: false,
 
-      // data
-      initData: null,
-      timeMachine: [],
-      nowStage: -1,
-      ctx: null,
-      mosaicCtx: null,
+      // data url
       url: null,
       mosaicUrl: null,
-      beforeBlur: null
     }
   },
 
   watch: {
     textFz(val, old) {
       let beyondW, beyondH
-      this.textW = this.ctx.textW(
+      this.textW = DATA.ctx.textW(
         this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
       this.$nextTick(function() {
         beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
@@ -378,7 +381,7 @@ export default {
       return {
         width: this.clipW - this.clipBorderW * 2 + 'px',
         height: this.clipH - this.clipBorderW * 2 + 'px',
-        backgroundImage: this.url === null ? 'none' : 'url(' + this.url + ')',
+        backgroundImage: this.url == null ? 'none' : 'url(' + this.url + ')',
         backgroundPosition: (-this.clipL - this.clipBorderW) + 'px ' + (-this.clipT - this.clipBorderW) + 'px'
       }
     },
@@ -393,7 +396,7 @@ export default {
       return {
         width: this.mosaicW - this.mosaicBorderW * 2 + 'px',
         height: this.mosaicH - this.mosaicBorderW * 2 + 'px',
-        backgroundImage: this.mosaicUrl === null ? 'none' : 'url(' + this.mosaicUrl + ')',
+        backgroundImage: this.mosaicUrl == null ? 'none' : 'url(' + this.mosaicUrl + ')',
         backgroundPosition: (-this.mosaicL - this.mosaicBorderW) + 'px ' + (-this.mosaicT - this.mosaicBorderW) + 'px'
       }
     },
@@ -404,7 +407,7 @@ export default {
         height: this.figureH - this.figureBorderW * 2 + 'px',
         backgroundColor: this.figureColors.hex,
         opacity: this.figureAlpha,
-        borderRadius: this.figureNow === 0 ? '0' : '50%'
+        borderRadius: this.figureNow == 0 ? '0' : '50%'
       }
     },
 
@@ -497,9 +500,9 @@ export default {
         this.$nextTick(function() {
           this.reset()
           this.canPaint = true
-          this.ctx = new Ctx(this.$refs.canvas);
-          this.ctx.put(img)
-          this.initData = this.ctx.get()
+          DATA.ctx = new Ctx(this.$refs.canvas);
+          DATA.ctx.put(img)
+          DATA.initData = DATA.ctx.get()
         })
       }
       img.src = this.url
@@ -520,7 +523,7 @@ export default {
       this.resetFunc()
       this.showText = true
       this.textText = this.textInitText
-      this.textW = this.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
+      this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
     },
 
     textMouseDown(e) {
@@ -531,7 +534,7 @@ export default {
     textDouble() {
       this.textContenteditable = true
       this.textText = ''
-      this.textW = this.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
+      this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
     },
 
     textKeyPress(e) {
@@ -540,13 +543,13 @@ export default {
 
     textInput() {
       let beyond, countWillRemove
-      this.textW = this.textW = this.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
+      this.textW = this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
       this.$nextTick(function() {
         beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
         if (beyond > 0) {
           countWillRemove = Math.floor((beyond / (this.textW / this.textText.length)))
           this.textText = this.textText.slice(0, this.textText.length - countWillRemove - 1)
-          this.textW = this.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
+          this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
         }
       })
     },
@@ -569,34 +572,37 @@ export default {
 
     paintText() {
       if (this.textContenteditable) {
-        let left = this.textL + this.textBorder
-        let top = this.textT + this.textBorder + this.textFz
-        this.ctx.text(this.textText, left, top, this.textColors.hex, this.textFz, this.textFm, this.textAlpha, this.shadowBlur, this.shadowColors.hex, this.shadowX, this.shadowY)
-        this.url = this.ctx.url()
-        if ((this.timeMachine.length - this.nowStage) !== 1) {
-          let popCount = this.timeMachine.length - 1 - this.nowStage
-          let i
-          for (i = 0; i < popCount; i++) {
-            this.timeMachine.pop()
-          }
-        }
-        this.timeMachine.push({
+        let text = this.textText
+        let l = this.textL + this.textBorder
+        let t = this.textT + this.textBorder + this.textFz
+        let color = this.textColors.hex
+        let fz = this.textFz
+        let fm = this.textFm
+        let alpha = this.textAlpha
+        let shadowBlur = this.shadowBlur
+        let shadowColor = this.shadowColors.hex
+        let shadowX = this.shadowX
+        let shadowY = this.shadowY
+        DATA.ctx.text(text, l, t, color, fz, fm, alpha, shadowBlur, shadowColor, shadowX, shadowY)
+        this.url = DATA.ctx.url()
+        this.autoStage()
+        DATA.timeMachine.push({
           type: 'text',
           detail: {
-            l: left,
-            t: top,
-            text: this.textText,
-            color: this.textColors.hex,
-            fz: this.textFz,
-            fm: this.textFm,
-            alpha: this.textAlpha,
-            shadowBlur: this.showBlur,
-            shadowColor: this.shadowColors.hex,
-            shadowX: this.shadowX,
-            shadowY: this.shadowY
+            l,
+            t,
+            text,
+            color,
+            fz,
+            fm,
+            alpha,
+            shadowBlur,
+            shadowColor,
+            shadowX,
+            shadowY
           }
         })
-        this.nowStage++
+        DATA.nowStage++
       }
     },
 
@@ -620,7 +626,7 @@ export default {
     // clip
     toggleClip() {
       if (!this.canPaint) return false
-      this.url = this.ctx.url()
+      this.url = DATA.ctx.url()
       if (this.showMosaic) {
         this.paintMosaic()
       }
@@ -645,7 +651,7 @@ export default {
     },
 
     downloadClip() {
-      this.ctx.download(this.clipL, this.clipT, this.clipW, this.clipH)
+      DATA.ctx.download(this.clipL, this.clipT, this.clipW, this.clipH)
     },
 
     resetClip() {
@@ -670,32 +676,26 @@ export default {
       }
       this.resetFunc()
       this.showBlur = true
-      this.beforeBlur = this.ctx.get()
+      DATA.beforeBlur = DATA.ctx.get()
     },
 
     blurInput(e) {
       let r = Math.floor(e.target.value / this.blurRation)
-      let coped = copy(this.beforeBlur)
-      this.ctx.put(coped)
-      this.ctx.blur(r)
+      let coped = copy(DATA.beforeBlur)
+      DATA.ctx.put(coped)
+      DATA.ctx.blur(r)
     },
 
     paintBlur() {
-      this.url = this.ctx.url()
-      if ((this.timeMachine.length - this.nowStage) !== 1) {
-        let popCount = this.timeMachine.length - 1 - this.nowStage
-        let i
-        for (i = 0; i < popCount; i++) {
-          this.timeMachine.pop()
-        }
-      }
-      this.timeMachine.push({
+      this.url = DATA.ctx.url()
+      this.autoStage()
+      DATA.timeMachine.push({
         type: 'blur',
         detail: {
           r: Math.floor(this.blur / this.blurRation)
         }
       })
-      this.nowStage++
+      DATA.nowStage++
     },
 
     resetBlur() {
@@ -731,10 +731,10 @@ export default {
       let canvas = document.createElement('canvas')
       canvas.width = this.canvasW
       canvas.height = this.canvasH
-      this.mosaicCtx = new Ctx(canvas)
-      this.mosaicCtx.put(this.ctx.get())
-      this.mosaicCtx.mosaic(value)
-      this.mosaicUrl = this.mosaicCtx.url()
+      DATA.mosaicCtx = new Ctx(canvas)
+      DATA.mosaicCtx.put(DATA.ctx.get())
+      DATA.mosaicCtx.mosaic(value)
+      this.mosaicUrl = DATA.mosaicCtx.url()
     },
 
     mosaicSelect() {
@@ -742,26 +742,25 @@ export default {
     },
 
     paintMosaic() {
-      this.ctx.mosaic(this.mosaicList[this.mosaicNow].value, this.mosaicL, this.mosaicT, this.mosaicW, this.mosaicH)
-      this.url = this.ctx.url()
-      if ((this.timeMachine.length - this.nowStage) !== 1) {
-        let popCount = this.timeMachine.length - 1 - this.nowStage
-        let i
-        for (i = 0; i < popCount; i++) {
-          this.timeMachine.pop()
-        }
-      }
-      this.timeMachine.push({
+      let v = this.mosaicList[this.mosaicNow].value
+      let l = this.mosaicL
+      let t = this.mosaicT
+      let w = this.mosaicW
+      let h = this.mosaicH
+      DATA.ctx.mosaic(v, l, t, w, h)
+      this.url = DATA.ctx.url()
+      this.autoStage()
+      DATA.timeMachine.push({
         type: 'mosaic',
         detail: {
-          l: this.mosaicL,
-          t: this.mosaicT,
-          w: this.mosaicW,
-          h: this.mosaicH,
-          value: this.mosaicList[this.mosaicNow].value
+          l,
+          t,
+          w,
+          h,
+          v
         }
       })
-      this.nowStage++
+      DATA.nowStage++
     },
 
     resetMosaic() {
@@ -805,46 +804,45 @@ export default {
     },
 
     paintFigure() {
-      let arcX, arcY, arcA, acrB
-      if ((this.timeMachine.length - this.nowStage) !== 1) {
-        let popCount = this.timeMachine.length - 1 - this.nowStage
-        let i
-        for (i = 0; i < popCount; i++) {
-          this.timeMachine.pop()
-        }
-      }
-      if (this.figureNow === 0) {
-        this.ctx.rect(this.figureL, this.figureT, this.figureW, this.figureH, this.figureColors.hex, this.figureAlpha)
-        this.timeMachine.push({
+      this.autoStage()
+      let color = this.figureColors.hex
+      let alpha = this.figureAlpha
+      if (this.figureNow == 0) {
+        let l = this.figureL
+        let t = this.figureT
+        let w = this.figureW
+        let h = this.figureH
+        DATA.ctx.rect(l, t, w, h, color, alpha)
+        DATA.timeMachine.push({
           type: 'rect',
           detail: {
-            t: this.figureT,
-            l: this.figureL,
-            w: this.figureW,
-            h: this.figureH,
-            color: this.figureColors.hex,
-            alpha: this.figureAlpha
+            t,
+            l,
+            w,
+            h,
+            color,
+            alpha
           }
         })
       } else {
-        arcX = this.figureL + this.figureW / 2
-        arcY = this.figureT + this.figureH / 2
-        arcA = this.figureW / 2
-        acrB = this.figureH / 2
-        this.ctx.arc(arcX, arcY, arcA, acrB, this.figureColors.hex, this.figureAlpha)
-        this.timeMachine.push({
+        let x = this.figureL + this.figureW / 2
+        let y = this.figureT + this.figureH / 2
+        let a = this.figureW / 2
+        let b = this.figureH / 2
+        DATA.ctx.arc(x, y, a, b, color, alpha)
+        DATA.timeMachine.push({
           type: 'arc',
           detail: {
-            x: arcX,
-            y: arcY,
-            a: arcA,
-            b: acrB,
-            color: this.figureColors.hex,
-            alpha: this.figureAlpha
+            x,
+            y,
+            a,
+            b,
+            color,
+            alpha,
           }
         })
       }
-      this.nowStage++
+      DATA.nowStage++
     },
 
     resetFigure() {
@@ -895,65 +893,75 @@ export default {
       }
     },
 
+    autoStage() {
+      if ((DATA.timeMachine.length - DATA.nowStage) !== 1) {
+        let popCount = DATA.timeMachine.length - 1 - DATA.nowStage
+        let i
+        for (i = 0; i < popCount; i++) {
+          DATA.timeMachine.pop()
+        }
+      }
+    },
+
     undo() {
       let i
       if (this.showBlur) {
-        this.ctx.put(this.beforeBlur)
+        DATA.ctx.put(DATA.beforeBlur)
       }
       if (this.showText || this.showClip || this.showBlur || this.showMosaic || this.showFigure) {
         this.resetFunc()
         return
       }
-      if (this.nowStage == -1) {
+      if (DATA.nowStage == -1) {
         return
       } else {
         this.resetFunc()
-        this.ctx.put(this.initData)
-        this.nowStage--;
-        for (i = 0; i <= this.nowStage; i++) {
-          this.repaint(this.timeMachine[i])
+        DATA.ctx.put(DATA.initData)
+        DATA.nowStage--;
+        for (i = 0; i <= DATA.nowStage; i++) {
+          this.repaint(DATA.timeMachine[i])
         }
-        this.url = this.ctx.url()
+        this.url = DATA.ctx.url()
       }
     },
 
     restore() {
-      if (this.nowStage + 1 === this.timeMachine.length) return
-      this.nowStage++;
-      this.repaint(this.timeMachine[this.nowStage])
-      this.url = this.ctx.url()
+      if (DATA.nowStage + 1 == DATA.timeMachine.length) return
+      DATA.nowStage++;
+      this.repaint(DATA.timeMachine[DATA.nowStage])
+      this.url = DATA.ctx.url()
     },
 
     repaint(stage) {
       let type = stage.type
       let detail = stage.detail
       if (type == 'text') {
-        this.ctx.text(detail.text, detail.l, detail.t, detail.color, detail.fz, detail.fm, detail.alpha, detail.shadowBlur, detail.shadowColor, detail.shadowX, detail.shadowY)
+        DATA.ctx.text(detail.text, detail.l, detail.t, detail.color, detail.fz, detail.fm, detail.alpha, detail.shadowBlur, detail.shadowColor, detail.shadowX, detail.shadowY)
       }
       if (type == 'blur') {
-        this.ctx.blur(detail.r)
+        DATA.ctx.blur(detail.r)
       }
       if (type == 'mosaic') {
-        this.ctx.mosaic(detail.value, detail.l, detail.t, detail.w, detail.h)
+        DATA.ctx.mosaic(detail.v, detail.l, detail.t, detail.w, detail.h)
       }
       if (type == 'rect') {
-        this.ctx.rect(detail.l, detail.t, detail.w, detail.h, detail.color, detail.alpha)
+        DATA.ctx.rect(detail.l, detail.t, detail.w, detail.h, detail.color, detail.alpha)
       }
       if (type == 'arc') {
-        this.ctx.arc(detail.x, detail.y, detail.a, detail.b, detail.color, detail.alpha)
+        DATA.ctx.arc(detail.x, detail.y, detail.a, detail.b, detail.color, detail.alpha)
       }
     },
 
     reset() {
       if (!this.canPaint) return false
       this.resetFunc()
-      this.ctx.put(this.initData)
-      this.mosaicCtx = null
+      DATA.ctx.put(DATA.initData)
+      DATA.mosaicCtx = null
       this.url = null
       this.mosaicUrl = null
-      this.beforeBlur = null
-      this.timeMachine = []
-      this.nowStage = -1
+      DATA.beforeBlur = null
+      DATA.timeMachine = []
+      DATA.nowStage = -1
     },
 
     download() {
@@ -961,7 +969,7 @@ export default {
       if (this.showMosaic) {
         this.paintMosaic()
       }
-      this.ctx.download()
+      DATA.ctx.download()
     }
   },
 
