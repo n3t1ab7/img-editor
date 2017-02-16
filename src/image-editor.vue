@@ -1,7 +1,7 @@
 <template>
   <div id="image-editor" :style="imageEditorSty">
     <div class="toolbar-wrapper" :style="toolWrapperSty">
-      <funcbar :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @toggleBlur="toggleBlur" @toggleMosaic="toggleMosaic" @toggleFigure="toggleFigure" @download="download" @reset="reset" />
+      <Func :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @toggleBlur="toggleBlur" @toggleMosaic="toggleMosaic" @toggleFigure="toggleFigure" @undo="undo" @restore="restore" @download="download" @reset="reset" />
       <div class="toolbar enhance text-enhance" :style="enhanceSty" :class="textEnhanceCla">
         <div class="menu">
           <label>
@@ -75,7 +75,7 @@
       </div>
       <div class="toolbar enhance mosaic-enhance" :style="enhanceSty" :class="mosaicEnhanceCla">
         <div class="menu">
-          <list :btns="mosaicList" @change="mosaicSelect" v-model="mosaicNow" :show="showMosaicSelect"></list>
+          <List :btns="mosaicList" @change="mosaicSelect" v-model="mosaicNow" :show="showMosaicSelect"></List>
           <label>
             水平
             <input type="number" v-model="mosaicL" />
@@ -96,7 +96,7 @@
       </div>
       <div class="toolbar enhance figure-enhance" :style="enhanceSty" :class="figureEnhanceCla">
         <div class="menu">
-          <list :btns="figureList" v-model="figureNow" :show="showFigureSelect"></list>
+          <List :btns="figureList" v-model="figureNow" :show="showFigureSelect"></List>
           <label>
             颜色
             <input type="text" readonly="true" @click="toggleFigureColorPicker" :style="colorFigureInputSty" class="color-picker-input" />
@@ -130,17 +130,17 @@
     <div class="panel" :style="editSty">
       <canvas :width="canvasW" :height="canvasH" ref="canvas"></canvas>
       <div class="mask" :style="editSty" @drop.prevent="drop" @click="maskClick">
-        <dropnotice :isShow="!canPaint" />
+        <Dropnotice :isShow="!canPaint" />
         <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" @keypress="textKeyPress" draggable="false" v-model="textText" ref="text"></textarea>
-        <box :show="showClip" :width="clipW" :height="clipH" :left="clipL" :top="clipT" :borderW="clipBorderW" :canvasW="canvasW" :canvasH="canvasH" :canDrag="clipCanDrag" :canvas="$refs.canvas" @change="boxChange">
+        <Box :show="showClip" :width="clipW" :height="clipH" :left="clipL" :top="clipT" :borderW="clipBorderW" :canvasW="canvasW" :canvasH="canvasH" :canDrag="clipCanDrag" :canvas="$refs.canvas" @change="boxChange">
           <div :style="clipSty"></div>
-        </box>
-        <box :show="showMosaic" :width="mosaicW" :height="mosaicH" :left="mosaicL" :top="mosaicT" :borderW="mosaicBorderW" :canvasW="canvasW" :canvasH="canvasH" :canDrag="mosaicCanDrag" :canvas="$refs.canvas" @change="mosaicChange">
+        </Box>
+        <Box :show="showMosaic" :width="mosaicW" :height="mosaicH" :left="mosaicL" :top="mosaicT" :borderW="mosaicBorderW" :canvasW="canvasW" :canvasH="canvasH" :canDrag="mosaicCanDrag" :canvas="$refs.canvas" @change="mosaicChange">
           <div :style="mosaicSty"></div>
-        </box>
-        <box :show="showFigure" :width="figureW" :height="figureH" :left="figureL" :top="figureT" :borderW="figureBorderW" :canvasW="canvasW" :canvasH="canvasH" :canDrag="figureCanDrag" :canvas="$refs.canvas" @change="figureChange">
+        </Box>
+        <Box :show="showFigure" :width="figureW" :height="figureH" :left="figureL" :top="figureT" :borderW="figureBorderW" :canvasW="canvasW" :canvasH="canvasH" :canDrag="figureCanDrag" :canvas="$refs.canvas" @change="figureChange">
           <div :style="figureSty"></div>
-        </box>
+        </Box>
       </div>
     </div>
   </div>
@@ -152,26 +152,26 @@ import {
   copy
 }
 from './utils.js'
-import funcbar from './components/func.vue'
-import dropnotice from './components/drop-notice.vue'
-import list from './components/select.vue'
-import box from './components/box.vue'
+import Func from './components/func.vue'
+import Dropnotice from './components/drop-notice.vue'
+import List from './components/select.vue'
+import Box from './components/box.vue'
 import {
   Chrome
 }
 from 'vue-color'
-import ctx from './ctx.js'
+import Ctx from './ctx.js'
 
 export default {
-  name: 'image-editor',
+  name: 'ImageEditor',
 
   props: ['width', 'height'],
   components: {
     'color-picker': Chrome,
-    funcbar,
-    dropnotice,
-    box,
-    list
+    Func,
+    Dropnotice,
+    Box,
+    List
   },
   data() {
     return {
@@ -282,6 +282,8 @@ export default {
 
       // data
       initData: null,
+      timeMachine: [],
+      nowStage: -1,
       ctx: null,
       mosaicCtx: null,
       url: null,
@@ -485,7 +487,6 @@ export default {
   methods: {
     // upload image
     drop(e) {
-      if (this.canPaint) return false
       let file, img
       file = e.dataTransfer.files[0]
       this.url = URL.createObjectURL(file)
@@ -494,8 +495,9 @@ export default {
         this.canvasW = img.width
         this.canvasH = img.height
         this.$nextTick(function() {
+          this.reset()
           this.canPaint = true
-          this.ctx = new ctx(this.$refs.canvas);
+          this.ctx = new Ctx(this.$refs.canvas);
           this.ctx.put(img)
           this.initData = this.ctx.get()
         })
@@ -571,6 +573,23 @@ export default {
         let top = this.textT + this.textBorder + this.textFz
         this.ctx.text(this.textText, left, top, this.textColors.hex, this.textFz, this.textFm, this.textAlpha, this.shadowBlur, this.shadowColors.hex, this.shadowX, this.shadowY)
         this.url = this.ctx.url()
+        this.timeMachine.push({
+          type: 'text',
+          detail: {
+            l: left,
+            t: top,
+            text: this.textText,
+            color: this.textColors.hex,
+            fz: this.textFz,
+            fm: this.textFm,
+            alpha: this.textAlpha,
+            shadowBlur: this.showBlur,
+            shadowColor: this.shadowColors.hex,
+            shadowX: this.shadowX,
+            shadowY: this.shadowY
+          }
+        })
+        this.nowStage++
       }
     },
 
@@ -656,6 +675,13 @@ export default {
 
     paintBlur() {
       this.url = this.ctx.url()
+      this.timeMachine.push({
+        type: 'blur',
+        detail: {
+          r: Math.floor(this.blur / this.blurRation)
+        }
+      })
+      this.nowStage++
     },
 
     resetBlur() {
@@ -691,7 +717,7 @@ export default {
       let canvas = document.createElement('canvas')
       canvas.width = this.canvasW
       canvas.height = this.canvasH
-      this.mosaicCtx = new ctx(canvas)
+      this.mosaicCtx = new Ctx(canvas)
       this.mosaicCtx.put(this.ctx.get())
       this.mosaicCtx.mosaic(value)
       this.mosaicUrl = this.mosaicCtx.url()
@@ -704,6 +730,17 @@ export default {
     paintMosaic() {
       this.ctx.mosaic(this.mosaicList[this.mosaicNow].value, this.mosaicL, this.mosaicT, this.mosaicW, this.mosaicH)
       this.url = this.ctx.url()
+      this.timeMachine.push({
+        type: 'mosaic',
+        detail: {
+          l: this.mosaicL,
+          t: this.mosaicT,
+          w: this.mosaicW,
+          h: this.mosaicH,
+          value: this.mosaicList[this.mosaicNow].value
+        }
+      })
+      this.nowStage++
     },
 
     resetMosaic() {
@@ -750,13 +787,36 @@ export default {
       let arcX, arcY, arcA, acrB
       if (this.figureNow === 0) {
         this.ctx.rect(this.figureL, this.figureT, this.figureW, this.figureH, this.figureColors.hex, this.figureAlpha)
+        this.timeMachine.push({
+          type: 'rect',
+          detail: {
+            t: this.figureT,
+            l: this.figureL,
+            w: this.figureW,
+            h: this.figureH,
+            color: this.figureColors.hex,
+            alpha: this.figureAlpha
+          }
+        })
       } else {
         arcX = this.figureL + this.figureW / 2
         arcY = this.figureT + this.figureH / 2
         arcA = this.figureW / 2
         acrB = this.figureH / 2
         this.ctx.arc(arcX, arcY, arcA, acrB, this.figureColors.hex, this.figureAlpha)
+        this.timeMachine.push({
+          type: 'arc',
+          detail: {
+            x: arcX,
+            y: arcY,
+            a: arcA,
+            b: acrB,
+            color: this.figureColors.hex,
+            alpha: this.figureAlpha
+          }
+        })
       }
+      this.nowStage++
     },
 
     resetFigure() {
@@ -807,6 +867,55 @@ export default {
       }
     },
 
+    undo() {
+      let i
+      if (this.showBlur) {
+        this.ctx.put(this.beforeBlur)
+      }
+      if (this.showText || this.showClip || this.showBlur || this.showMosaic || this.showFigure) {
+        this.resetFunc()
+        return
+      }
+      if (this.nowStage == -1) {
+        return
+      } else {
+        this.resetFunc()
+        this.ctx.put(this.initData)
+        this.nowStage--;
+        for (i = 0; i <= this.nowStage; i++) {
+          this.repaint(this.timeMachine[i])
+        }
+        this.url = this.ctx.url()
+      }
+    },
+
+    restore() {
+      if (this.nowStage + 1 === this.timeMachine.length) return
+      this.nowStage++;
+      this.repaint(this.timeMachine[this.nowStage])
+      this.url = this.ctx.url()
+    },
+
+    repaint(stage) {
+      let type = stage.type
+      let detail = stage.detail
+      if (type == 'text') {
+        this.ctx.text(detail.text, detail.l, detail.t, detail.color, detail.fz, detail.fm, detail.alpha, detail.shadowBlur, detail.shadowColor, detail.shadowX, detail.shadowY)
+      }
+      if (type == 'blur') {
+        this.ctx.blur(detail.r)
+      }
+      if (type == 'mosaic') {
+        this.ctx.mosaic(detail.value, detail.l, detail.t, detail.w, detail.h)
+      }
+      if (type == 'rect') {
+        this.ctx.rect(detail.l, detail.t, detail.w, detail.h, detail.color, detail.alpha)
+      }
+      if (type == 'arc') {
+        this.ctx.arc(detail.x, detail.y, detail.a, detail.b, detail.color, detail.alpha)
+      }
+    },
+
     reset() {
       if (!this.canPaint) return false
       this.resetFunc()
@@ -815,6 +924,8 @@ export default {
       this.url = null
       this.mosaicUrl = null
       this.beforeBlur = null
+      this.timeMachine = []
+      this.nowStage = -1
     },
 
     download() {
@@ -828,9 +939,9 @@ export default {
 
   mounted() {
     let d = document
-    let offset, left, top
+    let offset, left, top;
 
-      ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) => document.body.addEventListener(name, (e) => e.preventDefault()))
+    ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) => document.body.addEventListener(name, (e) => e.preventDefault()))
 
     d.addEventListener('mousemove', (e) => {
       if (this.textCanDrag) {
@@ -984,7 +1095,7 @@ input {
         background: #20a0ff;
         color: #fff;
         border-radius: 4px;
-        padding: 5px 17px;
+        padding: 2px 14px;
       }
     }
     .toolbar.funcbar {
@@ -1008,7 +1119,7 @@ input {
         font-size: 13px;
       }
       .main-btn {
-        margin-top: 6px;
+        margin-top: 9px;
         &:nth-of-type(1) {
           margin-right: 7px;
         }
@@ -1025,10 +1136,12 @@ input {
         }
       }
       .main-btn {
-        padding: 5px 17px;
+        padding: 2px 14px;
       }
       .download,
-      .reset {
+      .reset,
+      .undo,
+      .restore {
         float: right;
       }
     }

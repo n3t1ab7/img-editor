@@ -7,7 +7,7 @@
 
 <script>
 export default {
-  name: 'dropnotice',
+  name: 'Dropnotice',
   props:['isShow'],
   computed:{
     classObj(){

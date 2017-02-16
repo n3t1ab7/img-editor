@@ -9,6 +9,8 @@
     </div>
     <button class="main-btn download" @click="download">导出</button>
     <button class="main-btn reset" @click="reset">重置</button>
+    <button class="main-btn restore" @click="restore">恢复</button>
+    <button class="main-btn undo" @click="undo">撤销</button>
   </div>
 </template>
 <script>
@@ -38,6 +40,12 @@ export default {
     },
     toggleFigure() {
       this.$emit('toggleFigure')
+    },
+    undo() {
+      this.$emit('undo')
+    },
+    restore() {
+      this.$emit('restore')
     },
     download() {
       this.$emit('download')

@@ -15,7 +15,7 @@ import {
 from '../utils.js'
 
 export default {
-  name: 'box',
+  name: 'Box',
   props: ['show', 'width', 'height', 'left', 'top', 'borderW', 'canvasW', 'canvasH', 'canDrag', 'canvas'],
   data() {
     return {

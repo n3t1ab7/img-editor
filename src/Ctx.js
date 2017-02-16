@@ -52,16 +52,11 @@ export default class Ctx {
     this.ctx.restore()
   }
 
-  rect(x, y, w, h, color, alpha, isStroke = false) {
+  rect(x, y, w, h, color, alpha) {
     this.ctx.save()
     this.ctx.globalAlpha = alpha
-    if (isStroke) {
-      this.ctx.strokeStyle = color
-      this.ctx.strokeRect(x, y, w, h)
-    } else {
-      this.ctx.fillStyle = color
-      this.ctx.fillRect(x, y, w, h)
-    }
+    this.ctx.fillStyle = color
+    this.ctx.fillRect(x, y, w, h)
     this.ctx.restore()
   }
 
