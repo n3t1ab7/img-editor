@@ -573,6 +573,13 @@ export default {
         let top = this.textT + this.textBorder + this.textFz
         this.ctx.text(this.textText, left, top, this.textColors.hex, this.textFz, this.textFm, this.textAlpha, this.shadowBlur, this.shadowColors.hex, this.shadowX, this.shadowY)
         this.url = this.ctx.url()
+        if ((this.timeMachine.length - this.nowStage) !== 1) {
+          let popCount = this.timeMachine.length - 1 - this.nowStage
+          let i
+          for (i = 0; i < popCount; i++) {
+            this.timeMachine.pop()
+          }
+        }
         this.timeMachine.push({
           type: 'text',
           detail: {
@@ -675,6 +682,13 @@ export default {
 
     paintBlur() {
       this.url = this.ctx.url()
+      if ((this.timeMachine.length - this.nowStage) !== 1) {
+        let popCount = this.timeMachine.length - 1 - this.nowStage
+        let i
+        for (i = 0; i < popCount; i++) {
+          this.timeMachine.pop()
+        }
+      }
       this.timeMachine.push({
         type: 'blur',
         detail: {
@@ -730,6 +744,13 @@ export default {
     paintMosaic() {
       this.ctx.mosaic(this.mosaicList[this.mosaicNow].value, this.mosaicL, this.mosaicT, this.mosaicW, this.mosaicH)
       this.url = this.ctx.url()
+      if ((this.timeMachine.length - this.nowStage) !== 1) {
+        let popCount = this.timeMachine.length - 1 - this.nowStage
+        let i
+        for (i = 0; i < popCount; i++) {
+          this.timeMachine.pop()
+        }
+      }
       this.timeMachine.push({
         type: 'mosaic',
         detail: {
@@ -785,6 +806,13 @@ export default {
 
     paintFigure() {
       let arcX, arcY, arcA, acrB
+      if ((this.timeMachine.length - this.nowStage) !== 1) {
+        let popCount = this.timeMachine.length - 1 - this.nowStage
+        let i
+        for (i = 0; i < popCount; i++) {
+          this.timeMachine.pop()
+        }
+      }
       if (this.figureNow === 0) {
         this.ctx.rect(this.figureL, this.figureT, this.figureW, this.figureH, this.figureColors.hex, this.figureAlpha)
         this.timeMachine.push({
