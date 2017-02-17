@@ -73,7 +73,7 @@ input {
 .select {
   position: relative;
   display: inline-block;
-  height: 25px;
+  height: 20px;
   width: 130px;
   * {
     margin: 0;
@@ -94,6 +94,7 @@ input {
     }
     .icon {
       position: absolute;
+      right: 10px;
     }
   }
   div {
@@ -130,7 +131,6 @@ input {
         background: #20a0ff;
         color: #fff;
         border-radius: 4px;
-        height:25px;
         padding: 2px 14px;
       }
     }
@@ -208,6 +208,11 @@ input {
     }
     .toolbar.clip-enhance {
       line-height: 30px;
+      .menu {
+        .main-btn {
+          height: 25px;
+        }
+      }
       input.clip-input {
         width: 50px;
       }
@@ -310,6 +315,7 @@ input {
           border-radius: 100%;
           background: #20a0ff;
           cursor: move;
+          z-index: 200;
           &:first-of-type {
             left: 0;
             top: 0;
