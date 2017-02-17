@@ -388,9 +388,10 @@ export default {
         top: this.textT + 'px',
         color: this.textColors.hex,
         width: this.textW + 'px',
-        height: this.textFz * 1.4285 + 'px',
+        height: this.textFz + this.textBorder * 2 + 'px',
         borderW: this.textBorder + 'px',
         fontSize: this.textFz + 'px',
+        lineHeight: this.textFz + 'px',
         fontFamily: this.textFmList[this.textFmNow].value,
         opacity: this.textAlpha,
         textShadow: ((!this.shadowX) && (!this.shadowY)) ? 'none' : this.shadowX + 'px ' + this.shadowY + 'px ' + this.shadowBlur + 'px ' + this.shadowColors.hex

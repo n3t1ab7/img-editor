@@ -291,6 +291,7 @@ input {
         resize: none;
         outline: none;
         user-select: none;
+        line-height: 100%;
         &.disabled {
           text-align: center;
           cursor: pointer;
