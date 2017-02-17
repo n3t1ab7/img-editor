@@ -1,0 +1,336 @@
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0;
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 10px;
+  width: 10px;
+  border-radius: 100%;
+  background: #20a0ff;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type=range] {
+  -webkit-appearance: none;
+  height: 0;
+  background: #20a0ff;
+}
+
+@font-face {
+  font-family: 'icon';
+  src: url('./assert/iconfont.ttf');
+}
+
+.icon {
+  font-family: "icon" !important;
+  font-size: 16px;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-stroke-width: 0.2px;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.hide {
+  display: none;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+button {
+  position: relative;
+  display: inline-block;
+  border: none;
+  cursor: pointer;
+  outline: none;
+  box-sizing: border-box;
+  background: #fff;
+  margin-left: 5px;
+  transition: opacity 300ms;
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+input {
+  outline: none;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, .15);
+  border-radius: 2px;
+  width: 30px;
+  text-align: center;
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.1);
+}
+
+.select {
+  position: relative;
+  display: inline-block;
+  height: 30px;
+  width: 100px;
+  text-align: center;
+  * {
+    margin: 0;
+    padding: 0;
+  }
+  button {
+    display: block;
+    background: #f5f6fa;
+    color: #747272;
+    width: 100%;
+    height: 20px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    &:hover {
+      opacity: 1
+    }
+    .icon {
+      position: absolute;
+    }
+  }
+  div {
+    position: absolute;
+    z-index: 100;
+    top: 20px;
+    left: 0;
+    width: 100px;
+    button {
+      border: none;
+      border-radius: 0;
+      &:last-of-type {
+        border-radius: 0 0 6px 6px;
+      }
+    }
+  }
+}
+
+#image-editor {
+  font-family: "SF Pro SC", "SF Pro Text", "SF Pro Icons", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+  user-select: none;
+  position: relative;
+  margin: 20px auto;
+  width: 400px;
+  height: 300px;
+  .toolbar-wrapper {
+    font-size: 11px;
+    .toolbar {
+      .menu {
+        float: left;
+        height: 100%;
+      }
+      .main-btn {
+        background: #20a0ff;
+        color: #fff;
+        border-radius: 4px;
+        padding: 2px 14px;
+      }
+    }
+    .toolbar.funcbar {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+      border: 1px solid #eaeaea;
+      background: #f5f7f9;
+      border-radius: 9px;
+      box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);
+      * {
+        box-sizing: border-box;
+        padding: 0;
+        margin: 0;
+      }
+      .icon {
+        font-size: 12px;
+      }
+      button {
+        margin-left: 10px;
+        font-size: 13px;
+      }
+      .main-btn {
+        margin-top: 9px;
+        &:nth-of-type(1) {
+          margin-right: 7px;
+        }
+      }
+      .menu {
+        line-height: 38px;
+        margin-left: 7px;
+        button {
+          margin-top: 0;
+          background: transparent;
+          &:first-of-type {
+            margin-left: 0;
+          }
+        }
+      }
+      .main-btn {
+        padding: 2px 14px;
+      }
+      .download,
+      .reset,
+      .undo,
+      .restore {
+        float: right;
+      }
+    }
+    .toolbar.enhance {
+      background: #f5f6fa;
+      border-radius: 6px;
+      color: #747272;
+      box-shadow: 1px 1px 4px rgba(0, 0, 0, 0.1);
+      label {
+        margin-left: 7px;
+        position: relative;
+      }
+    }
+    .toolbar.text-enhance {
+      line-height: 33px;
+      .color-picker-input {
+        width: 12px;
+        height: 12px;
+        border-radius: 100%;
+        border: 1px solid #ccc;
+        text-align: center;
+      }
+      .color-picker {
+        position: absolute;
+        z-index: 100;
+        left: 0;
+      }
+    }
+    .toolbar.clip-enhance {
+      line-height: 30px;
+      input.clip-input {
+        width: 50px;
+      }
+    }
+    .toolbar.blur-enhance {
+      .menu:first-of-type {
+        line-height: 30px;
+      }
+      .menu:nth-of-type(2) {
+        line-height: 27px;
+        input.blur-input {
+          box-shadow: none;
+        }
+      }
+    }
+    .toolbar.blur-enhance {
+      .menu {
+        line-height: 30px;
+      }
+    }
+    .toolbar.mosaic-enhance {
+      .menu {
+        line-height: 30px;
+      }
+    }
+    .toolbar.figure-enhance {
+      line-height: 33px;
+      .color-picker-input {
+        width: 12px;
+        height: 12px;
+        border-radius: 100%;
+        border: 1px solid #ccc;
+        text-align: center;
+      }
+      .color-picker {
+        position: absolute;
+        z-index: 100;
+        left: 0;
+      }
+    }
+  }
+  .panel {
+    position: relative;
+    * {
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+    }
+    canvas,
+    .mask {
+      position: absolute;
+      top: 0;
+      left: 0;
+      border-radius: 2px;
+    }
+    .mask {
+      z-index: 50;
+      .drop-notice {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        font-size: 30px;
+        text-align: center;
+        transform: translateX(-50%) translateY(-50%);
+        color: #ada4a4;
+        .drop-icon {
+          font-size: 60px;
+        }
+      }
+      .textarea {
+        position: absolute;
+        overflow: hidden;
+        background: transparent;
+        border-radius: 2px;
+        border: 2px dashed #fff;
+        resize: none;
+        outline: none;
+        user-select: none;
+        &.disabled {
+          text-align: center;
+          cursor: pointer;
+          cursor: -webkit-grab;
+        }
+        &.abled {
+          text-align: left;
+          cursor: text;
+        }
+      }
+      .box {
+        position: absolute;
+        cursor: pointer;
+        cursor: -webkit-grab;
+        border-style: dashed;
+        border-color: #fff;
+        border-radius: 2px;
+        .point {
+          position: absolute;
+          width: 10px;
+          height: 10px;
+          border-radius: 100%;
+          background: #20a0ff;
+          cursor: move;
+          &:first-of-type {
+            left: 0;
+            top: 0;
+            transform: translateX(-50%) translateY(-50%);
+            cursor: move;
+          }
+          &:nth-of-type(2) {
+            right: 0;
+            top: 0;
+            transform: translateX(50%) translateY(-50%);
+          }
+          &:nth-of-type(3) {
+            bottom: 0;
+            left: 0;
+            transform: translateX(-50%) translateY(50%);
+          }
+          &:nth-of-type(4) {
+            right: 0;
+            bottom: 0;
+            transform: translateX(50%) translateY(50%);
+          }
+        }
+      }
+    }
+  }
+}
