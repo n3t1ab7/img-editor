@@ -43,6 +43,7 @@
       <div class="toolbar enhance clip-enhance" :style="enhanceSty" :class="clipEnhanceCla">
         <div class="menu">
           <button class="main-btn" @click="downloadClip">裁剪并导出</button>
+          <List :btns="clipList" v-model="clipNow" :show="showClipSelect"></List>
           <label>
             水平
             <input type="number" class="clip-input" v-model="clipL" />
@@ -256,6 +257,15 @@ export default {
 
       // clip state
       clipCanDrag: false,
+      clipList: [{
+        name: '矩形',
+        idx: 0
+      }, {
+        name: '圆形',
+        idx: 1
+      }],
+      clipNow: 0,
+      showClipSelect: false,
 
       // blur state
       blur: 0,
@@ -382,7 +392,8 @@ export default {
         width: this.clipW - this.clipBorderW * 2 + 'px',
         height: this.clipH - this.clipBorderW * 2 + 'px',
         backgroundImage: this.url == null ? 'none' : 'url(' + this.url + ')',
-        backgroundPosition: (-this.clipL - this.clipBorderW) + 'px ' + (-this.clipT - this.clipBorderW) + 'px'
+        backgroundPosition: (-this.clipL - this.clipBorderW) + 'px ' + (-this.clipT - this.clipBorderW) + 'px',
+        borderRadius: this.clipNow == 0 ? '0' : '50%'
       }
     },
 
@@ -651,7 +662,12 @@ export default {
     },
 
     downloadClip() {
-      DATA.ctx.download(this.clipL, this.clipT, this.clipW, this.clipH)
+      if (this.clipNow == 0) {
+        DATA.ctx.downloadRect(this.clipL, this.clipT, this.clipW, this.clipH)
+      }
+      if (this.clipNow == 1) {
+        DATA.ctx.downloadArc(this.clipW, this.clipH, this.clipL, this.clipT)
+      }
     },
 
     resetClip() {
@@ -660,6 +676,8 @@ export default {
       this.clipT = 10
       this.clipW = 200
       this.clipH = 200
+      this.clipNow = 0
+      this.showClipSelect = false
     },
 
     // blur

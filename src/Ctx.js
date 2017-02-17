@@ -64,6 +64,12 @@ export default class Ctx {
     this.ctx.save()
     this.ctx.globalAlpha = alpha
     this.ctx.fillStyle = color
+    this.arcPath(x, y, a, b)
+    this.ctx.fill()
+    this.ctx.restore()
+  }
+
+  arcPath(x, y, a, b) {
     let r = (a > b) ? a : b
     let ratioX = a / r
     let ratioY = b / r
@@ -71,8 +77,6 @@ export default class Ctx {
     this.ctx.beginPath()
     this.ctx.arc(x / ratioX, y / ratioY, r, 0, 2 * Math.PI, false)
     this.ctx.closePath()
-    this.ctx.fill()
-    this.ctx.restore()
   }
 
   textW(txt, fz, fm, min) {
@@ -131,12 +135,44 @@ export default class Ctx {
     this.put(imgData, x, y)
   }
 
-  download(x = 0, y = 0, w = this.w, h = this.h) {
+  downloadRect(x = 0, y = 0, w = this.w, h = this.h) {
     let a, url
     a = document.createElement('a')
     url = this.url(x, y, w, h)
     a.href = url
     a.download = String(+(new Date))
     a.click()
+  }
+
+  downloadArc(w = this.w, h = this.h, l = 0, t = 0) {
+    let canvas = document.createElement('canvas')
+    let ctx, x, y, a, b, r, ratioX, ratioY, img, url, link
+    canvas.width = w
+    canvas.height = h
+    ctx = canvas.getContext('2d')
+    x = w / 2
+    y = h / 2
+    a = w / 2
+    b = h / 2
+    r = (a > b) ? a : b
+    ratioX = a / r
+    ratioY = b / r
+    ctx.scale(ratioX, ratioY)
+    ctx.beginPath()
+    ctx.arc(x / ratioX, y / ratioY, r, 0, 2 * Math.PI, false)
+    ctx.closePath()
+    ctx.clip()
+    img = new Image()
+    img.width = this.width
+    img.height = this.height
+    img.onload = function() {
+      ctx.drawImage(img, -l, -t)
+      url = canvas.toDataURL()
+      link = document.createElement('a')
+      link.href = url
+      link.download = String(+(new Date))
+      link.click()
+    }
+    img.src = this.url()
   }
 }
