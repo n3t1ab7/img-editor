@@ -4,6 +4,7 @@
       <Func :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @toggleBlur="toggleBlur" @toggleMosaic="toggleMosaic" @toggleFigure="toggleFigure" @undo="undo" @restore="restore" @download="download" @reset="reset" />
       <div class="toolbar enhance text-enhance" :style="enhanceSty" :class="textEnhanceCla">
         <div class="menu">
+          <List :btns="textFmList" v-model="textFmNow" :show="showTextFmSelect"></List>
           <label>
             颜色
             <input type="text" readonly="true" @click="toggleColorPicker" :style="colorInputSty" class="color-picker-input" />
@@ -199,7 +200,6 @@ export default {
       textT: 10,
       textW: 0,
       textFz: 22,
-      textFm: 'sans-serif',
       textBorder: 2,
       textColors: {
         hex: "#ffffff"
@@ -254,6 +254,17 @@ export default {
       textToPointer: null,
       textShowColorPicker: false,
       textShowShadowColorPicker: false,
+      textFmList: [{
+        name: '系统默认衬线字体',
+        value: 'serif',
+        idx: 0
+      }, {
+        name: '系统默认无衬线字体',
+        value: 'sans-serif',
+        idx: 1
+      }],
+      textFmNow: 0,
+      showTextFmSelect: false,
 
       // clip state
       clipCanDrag: false,
@@ -317,6 +328,18 @@ export default {
           this.textFz = old
         }
       })
+    },
+    textFmNow(val, old) {
+      let beyondW, beyondH
+      this.textW = DATA.ctx.textW(
+        this.textText, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
+      this.$nextTick(function() {
+        beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
+        beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.canvasH
+        if (beyondW > 0 || beyondH > 0) {
+          this.textFmNow = old
+        }
+      })
     }
   },
 
@@ -368,7 +391,7 @@ export default {
         height: this.textFz * 1.4285 + 'px',
         borderW: this.textBorder + 'px',
         fontSize: this.textFz + 'px',
-        fontFamily: this.textFm,
+        fontFamily: this.textFmList[this.textFmNow].value,
         opacity: this.textAlpha,
         textShadow: ((!this.shadowX) && (!this.shadowY)) ? 'none' : this.shadowX + 'px ' + this.shadowY + 'px ' + this.shadowBlur + 'px ' + this.shadowColors.hex
       }
@@ -534,7 +557,7 @@ export default {
       this.resetFunc()
       this.showText = true
       this.textText = this.textInitText
-      this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
+      this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
     },
 
     textMouseDown(e) {
@@ -545,7 +568,7 @@ export default {
     textDouble() {
       this.textContenteditable = true
       this.textText = ''
-      this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
+      this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
     },
 
     textKeyPress(e) {
@@ -554,7 +577,7 @@ export default {
 
     textInput() {
       let beyond, countWillRemove
-      this.textW = this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
+      this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
       this.$nextTick(function() {
         beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
         if (beyond > 0) {
@@ -588,7 +611,7 @@ export default {
         let t = this.textT + this.textBorder + this.textFz
         let color = this.textColors.hex
         let fz = this.textFz
-        let fm = this.textFm
+        let fm = this.textFmList[this.textFmNow].value
         let alpha = this.textAlpha
         let shadowBlur = this.shadowBlur
         let shadowColor = this.shadowColors.hex
@@ -626,7 +649,7 @@ export default {
       this.textColors.hex = '#ffffff'
       this.shadowColors.hex = '#000000'
       this.textFz = 22
-      this.textFm = 'sans-serif'
+      this.textFmNow = 0
       this.textShowColorPicker = false
       this.shadowY = 0
       this.shadowX = 0
