@@ -1,7 +1,24 @@
 <template>
   <div id="image-editor" :style="imageEditorSty">
     <div class="toolbar-wrapper" :style="toolWrapperSty">
-      <Func :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @toggleBlur="toggleBlur" @toggleMosaic="toggleMosaic" @toggleFigure="toggleFigure" @toggleFilter="toggleFilter" @open="open" @demo="demo" @undo="undo" @restore="restore" @download="download" @reset="reset" />
+      <div class="toolbar funcbar" :style="funcSty">
+        <div class="menu">
+          <button @click="toggleText"><i class="icon">&#xe633;</i>文本</button>
+          <button @click="toggleClip"><i class="icon">&#xe600;</i>裁剪</button>
+          <button @click="toggleBlur"><i class="icon">&#xe67d;</i>模糊</button>
+          <button @click="toggleMosaic"><i class="icon">&#xe6b3;</i>马赛克</button>
+          <button @click="toggleFigure"><i class="icon">&#xe605;</i>图形</button>
+          <button @click="toggleFilter"><i class="icon">&#xe601;</i>滤镜</button>
+        </div>
+        <button class="main-btn download" @click="download">导出</button>
+        <button class="main-btn reset" @click="reset">重置</button>
+        <button class="main-btn restore" @click="restore"><i class="icon">&#xe6d2;</i></button>
+        <button class="main-btn undo" @click="undo"><i class="icon">&#xe69a;</i></button>
+        <button class="main-btn demo" @click="demo">示例</button>
+        <label class="main-btn open">浏览
+          <input type="file" style="display:none" @change="open">
+        </label>
+      </div>
       <div class="toolbar enhance text-enhance" :style="enhanceSty" v-show="showText">
         <div class="menu">
           <List :btns="textFmList" v-model="textFmNow" :show="showTextFmSelect"></List>
@@ -137,7 +154,10 @@
     <div class="panel" :style="editSty">
       <canvas :width="canvasW" :height="canvasH" ref="canvas"></canvas>
       <div class="mask" :style="editSty" @drop.prevent="drop" @click="maskClick">
-        <Dropnotice :isShow="!canPaint" />
+        <div v-show="!canPaint" class="drop-notice">
+          <i class="icon drop-icon">&#xe624;</i>
+          <p>拖放图片到此</p>
+        </div>
         <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" @keypress="textKeyPress" draggable="false" v-model="textText" ref="text"></textarea>
         <Box :show="showClip" :width="clipW" :height="clipH" :left="clipL" :top="clipT" :borderW="clipBorderW" :canvasW="canvasW" :canvasH="canvasH" :canDrag="clipCanDrag" :canvas="$refs.canvas" @change="boxChange">
           <div :style="clipSty"></div>
@@ -159,8 +179,6 @@ import {
   copy
 }
 from './utils.js'
-import Func from './components/func.vue'
-import Dropnotice from './components/drop-notice.vue'
 import List from './components/select.vue'
 import Box from './components/box.vue'
 import {
@@ -185,8 +203,6 @@ export default {
   props: ['width', 'height'],
   components: {
     'color-picker': Chrome,
-    Func,
-    Dropnotice,
     Box,
     List
   },
