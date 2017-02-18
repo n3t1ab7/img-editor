@@ -3,6 +3,7 @@ let type = function(obj) {
 }
 
 import StackBlur from 'stackblur-canvas'
+import ColorMatrix from './color-matrix.js'
 
 export default class Ctx {
   constructor(canvas) {
@@ -133,6 +134,39 @@ export default class Ctx {
       i += 4
     }
     this.put(imgData, x, y)
+  }
+
+  toasterGradient(width, height) {
+    var texture = document.createElement('canvas');
+    var ctx = texture.getContext('2d');
+    texture.width = width;
+    texture.height = height;
+    var gradient = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width * 0.6);
+    gradient.addColorStop(0, "#804e0f");
+    gradient.addColorStop(1, "#3b003b");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+    return ctx;
+  }
+
+  screen(background, foreground, width, height, transform) {
+    var bottom = background.getImageData(0, 0, width, height);
+    var top = foreground.getImageData(0, 0, width, height);
+    for (var i = 0, size = top.data.length; i < size; i += 4) {
+      top.data[i + 0] = transform(bottom.data[i + 0], top.data[i + 0]);
+      top.data[i + 1] = transform(bottom.data[i + 1], top.data[i + 1]);
+      top.data[i + 2] = transform(bottom.data[i + 2], top.data[i + 2]);
+    }
+    return top;
+  }
+
+  blend() {
+    let gradient = this.toasterGradient(this.w, this.h)
+    let screen = this.screen(this.ctx, gradient, this.w, this.h, function(bottomPixel, topPixel) {
+      return 255 - (255 - topPixel) * (255 - bottomPixel) / 255;
+    })
+    let colorCorrected = ColorMatrix(screen, { contrast: 30, brightness: -30 });
+    this.put(colorCorrected);
   }
 
   downloadRect(x = 0, y = 0, w = this.w, h = this.h) {

@@ -6,6 +6,7 @@
       <button @click="toggleBlur"><i class="icon">&#xe67d;</i>模糊</button>
       <button @click="toggleMosaic"><i class="icon">&#xe6b3;</i>马赛克</button>
       <button @click="toggleFigure"><i class="icon">&#xe605;</i>图形</button>
+      <button @click="toggleFilter"><i class="icon">&#xe605;</i>滤镜</button>
     </div>
     <button class="main-btn download" @click="download">导出</button>
     <button class="main-btn reset" @click="reset">重置</button>
@@ -40,6 +41,9 @@ export default {
     },
     toggleFigure() {
       this.$emit('toggleFigure')
+    },
+    toggleFilter() {
+      this.$emit('toggleFilter')
     },
     undo() {
       this.$emit('undo')

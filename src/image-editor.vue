@@ -1,7 +1,7 @@
 <template>
   <div id="image-editor" :style="imageEditorSty">
     <div class="toolbar-wrapper" :style="toolWrapperSty">
-      <Func :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @toggleBlur="toggleBlur" @toggleMosaic="toggleMosaic" @toggleFigure="toggleFigure" @undo="undo" @restore="restore" @download="download" @reset="reset" />
+      <Func :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @toggleBlur="toggleBlur" @toggleMosaic="toggleMosaic" @toggleFigure="toggleFigure" @toggleFilter="toggleFilter" @undo="undo" @restore="restore" @download="download" @reset="reset" />
       <div class="toolbar enhance text-enhance" :style="enhanceSty" :class="textEnhanceCla">
         <div class="menu">
           <List :btns="textFmList" v-model="textFmNow" :show="showTextFmSelect"></List>
@@ -128,6 +128,11 @@
           </label>
         </div>
       </div>
+      <div class="toolbar enhance filter-enhance" :style="enhanceSty" :class="filterEnhanceCla">
+        <div class="menu">
+          <List :btns="filterList" v-model="filterNow" :show="showFilterSelect" @change="filterSelect"></List>
+        </div>
+      </div>
     </div>
     <div class="panel" :style="editSty">
       <canvas :width="canvasW" :height="canvasH" ref="canvas"></canvas>
@@ -170,8 +175,11 @@ let DATA = {
   nowStage: -1,
   ctx: null,
   mosaicCtx: null,
-  beforeBlur: null
+  beforeBlur: null,
+  beforeFilter: null
 }
+
+window.DATA = DATA
 
 export default {
   name: 'ImageEditor',
@@ -246,6 +254,7 @@ export default {
       showBlur: false,
       showMosaic: false,
       showFigure: false,
+      showFilter: false,
 
       //text state
       textContenteditable: false,
@@ -311,6 +320,17 @@ export default {
       }],
       figureNow: 0,
       showFigureSelect: false,
+
+      // filter state
+      filterList: [{
+        name: '无',
+        idx: 0
+      }, {
+        name: 'blend',
+        idx: 1
+      }],
+      filterNow: 0,
+      showFilterSelect: false,
 
       // data url
       url: null,
@@ -518,6 +538,12 @@ export default {
       }
     },
 
+    filterEnhanceCla() {
+      return {
+        hide: !this.showFilter
+      }
+    },
+
     // state
     blurRation() {
       return this.blurRangeW / this.blurMax
@@ -553,6 +579,9 @@ export default {
       }
       if (this.showBlur) {
         this.paintBlur()
+      }
+      if (this.showFilter) {
+        this.paintFilter()
       }
       if (this.showFigure) {
         this.paintFigure()
@@ -773,8 +802,8 @@ export default {
 
     setMosaic(value) {
       let canvas = document.createElement('canvas')
-      canvas.width = this.minCanvasW
-      canvas.height = this.minCanvasH
+      canvas.width = this.canvasW
+      canvas.height = this.canvasH
       DATA.mosaicCtx = new Ctx(canvas)
       DATA.mosaicCtx.put(DATA.ctx.get())
       DATA.mosaicCtx.mosaic(value)
@@ -901,6 +930,56 @@ export default {
       this.figureColors.hex = '#9E4949'
     },
 
+    // filter
+    toggleFilter() {
+      if (!this.canPaint) return false
+      if (this.showText && this.textContenteditable) {
+        this.paintText()
+      }
+      if (this.showBlur) {
+        this.paintBlur()
+      }
+      if (this.showFigure) {
+        this.paintFigure()
+      }
+      if (this.showMosaic) {
+        this.paintMosaic()
+      }
+      this.resetFunc()
+      this.showFilter = true
+      DATA.beforeFilter = DATA.ctx.get()
+    },
+
+    paintFilter() {
+      this.url = DATA.ctx.url()
+      this.autoStage()
+      let name = this.filterList[this.filterNow]
+      DATA.timeMachine.push({
+        type: 'filter',
+        detail: {
+          func: name
+        }
+      })
+      DATA.nowStage++
+    },
+
+    resetFilter() {
+      this.showFilter = false
+      this.filterNow = 0
+    },
+
+    filterSelect() {
+      let coped
+      coped = copy(DATA.beforeFilter)
+      if (this.filterNow == 0) {
+        DATA.ctx.put(DATA.beforeFilter)
+      }
+      if (this.filterNow == 1) {
+        DATA.ctx.put(coped)
+        DATA.ctx.blend()
+      }
+    },
+
     // mask
     maskClick(e) {
       if (e.target.className !== 'mask') return false
@@ -935,6 +1014,9 @@ export default {
       if (this.showFigure) {
         this.resetFigure()
       }
+      if (this.showFilter) {
+        this.resetFilter()
+      }
     },
 
     autoStage() {
@@ -952,7 +1034,10 @@ export default {
       if (this.showBlur) {
         DATA.ctx.put(DATA.beforeBlur)
       }
-      if (this.showText || this.showClip || this.showBlur || this.showMosaic || this.showFigure) {
+      if (this.showFilter) {
+        DATA.ctx.put(DATA.beforeFilter)
+      }
+      if (this.showText || this.showClip || this.showBlur || this.showMosaic || this.showFigure || this.showFilter) {
         this.resetFunc()
         return
       }
@@ -985,6 +1070,9 @@ export default {
       if (type == 'blur') {
         DATA.ctx.blur(detail.r)
       }
+      if (type == 'filter') {
+        DATA.ctx[detail.func.name]()
+      }
       if (type == 'mosaic') {
         DATA.ctx.mosaic(detail.v, detail.l, detail.t, detail.w, detail.h)
       }
@@ -1004,6 +1092,7 @@ export default {
       this.url = null
       this.mosaicUrl = null
       DATA.beforeBlur = null
+      DATA.beforeFilter = null
       DATA.timeMachine = []
       DATA.nowStage = -1
     },
@@ -1028,10 +1117,10 @@ export default {
         offset = getPointerToElem(e, this.$refs.canvas)
         left = offset.left - this.textToPointer.left
         top = offset.top - this.textToPointer.top
-        if (left >= 0 && left <= this.minCanvasW - parseFloat(this.textSty.width)) {
+        if (left >= 0 && left <= this.canvasW - parseFloat(this.textSty.width)) {
           this.textL = left
         }
-        if (top >= 0 && top <= this.minCanvasH - parseFloat(this.textSty.height)) {
+        if (top >= 0 && top <= this.canvasH - parseFloat(this.textSty.height)) {
           this.textT = top
         }
       }
