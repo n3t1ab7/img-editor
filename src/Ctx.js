@@ -2,6 +2,49 @@ let type = function(obj) {
   return (Object.prototype.toString.call(obj).slice(8, -1))
 }
 
+let getColorByCoord = function(imgData, { x, y }) {
+  let n, r, g, b, a
+  n = (y * imgData.width + x) * 4
+  r = imgData.data[n]
+  g = imgData.data[n + 1]
+  b = imgData.data[n + 2]
+  a = imgData.data[n + 3]
+  return { r: r, g: g, b: b, a: a }
+}
+
+let setColorByCoord = function(imgData, { r, g, b, a }, { x, y }) {
+  let n = (y * imgData.width + x) * 4
+  imgData.data[n] = r
+  imgData.data[n + 1] = g
+  imgData.data[n + 2] = b
+  imgData.data[n + 3] = a
+}
+
+let toasterGradient = function(width, height) {
+  let texture = document.createElement('canvas')
+  let ctx = texture.getContext('2d')
+  texture.width = width
+  texture.height = height
+  let gradient = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width * 0.6)
+  gradient.addColorStop(0, "#804e0f")
+  gradient.addColorStop(1, "#3b003b")
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, width, height)
+  return ctx
+}
+
+let screen = function(background, foreground, width, height, transform) {
+  let bottom = background.getImageData(0, 0, width, height)
+  let top = foreground.getImageData(0, 0, width, height)
+  let i, size
+  for (i = 0, size = top.data.length; i < size; i += 4) {
+    top.data[i + 0] = transform(bottom.data[i + 0], top.data[i + 0])
+    top.data[i + 1] = transform(bottom.data[i + 1], top.data[i + 1])
+    top.data[i + 2] = transform(bottom.data[i + 2], top.data[i + 2])
+  }
+  return top
+}
+
 import StackBlur from 'stackblur-canvas'
 import ColorMatrix from './color-matrix.js'
 
@@ -87,32 +130,6 @@ export default class Ctx {
     return result > min ? result : min
   }
 
-  getCoord(imgData, i) {
-    let n = i / 4
-    return {
-      x: n % imgData.width,
-      y: Math.floor(n / imgData.width)
-    }
-  }
-
-  getColorByCoord(imgData, { x, y }) {
-    let n, r, g, b, a
-    n = (y * imgData.width + x) * 4
-    r = imgData.data[n]
-    g = imgData.data[n + 1]
-    b = imgData.data[n + 2]
-    a = imgData.data[n + 3]
-    return { r: r, g: g, b: b, a: a }
-  }
-
-  setColorByCoord(imgData, { r, g, b, a }, { x, y }) {
-    let n = (y * imgData.width + x) * 4
-    imgData.data[n] = r
-    imgData.data[n + 1] = g
-    imgData.data[n + 2] = b
-    imgData.data[n + 3] = a
-  }
-
   blur(r = 2, x = 0, y = 0, w = this.w, h = this.h) {
     StackBlur.canvasRGBA(this.elem, x, y, w, h, r)
   }
@@ -122,50 +139,27 @@ export default class Ctx {
     let d = imgData.data
     let width = imgData.width
     let i = 0
+    let n
     let mx, my, c, coord, X, Y
     while (i < d.length) {
-      coord = this.getCoord(imgData, i)
-      X = coord.x
-      Y = coord.y
+      n = i / 4
+      X = n % imgData.width
+      Y = Math.floor(n / imgData.width)
       mx = X - (X % strength)
       my = Y - (Y % strength)
-      c = this.getColorByCoord(imgData, { x: mx, y: my })
-      this.setColorByCoord(imgData, c, { x: X, y: Y })
+      c = getColorByCoord(imgData, { x: mx, y: my })
+      setColorByCoord(imgData, c, { x: X, y: Y })
       i += 4
     }
     this.put(imgData, x, y)
   }
 
-  toasterGradient(width, height) {
-    var texture = document.createElement('canvas');
-    var ctx = texture.getContext('2d');
-    texture.width = width;
-    texture.height = height;
-    var gradient = ctx.createRadialGradient(width / 2, height / 2, 0, width / 2, height / 2, width * 0.6);
-    gradient.addColorStop(0, "#804e0f");
-    gradient.addColorStop(1, "#3b003b");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, width, height);
-    return ctx;
-  }
-
-  screen(background, foreground, width, height, transform) {
-    var bottom = background.getImageData(0, 0, width, height);
-    var top = foreground.getImageData(0, 0, width, height);
-    for (var i = 0, size = top.data.length; i < size; i += 4) {
-      top.data[i + 0] = transform(bottom.data[i + 0], top.data[i + 0]);
-      top.data[i + 1] = transform(bottom.data[i + 1], top.data[i + 1]);
-      top.data[i + 2] = transform(bottom.data[i + 2], top.data[i + 2]);
-    }
-    return top;
-  }
-
   blend() {
-    let gradient = this.toasterGradient(this.w, this.h)
-    let screen = this.screen(this.ctx, gradient, this.w, this.h, function(bottomPixel, topPixel) {
+    let gradient = toasterGradient(this.w, this.h)
+    let s = screen(this.ctx, gradient, this.w, this.h, function(bottomPixel, topPixel) {
       return 255 - (255 - topPixel) * (255 - bottomPixel) / 255;
     })
-    let colorCorrected = ColorMatrix(screen, { contrast: 30, brightness: -30 });
+    let colorCorrected = ColorMatrix(s, { contrast: 30, brightness: -30 });
     this.put(colorCorrected);
   }
 

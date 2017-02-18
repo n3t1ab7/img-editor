@@ -113,6 +113,13 @@ input {
   }
 }
 
+.main-btn {
+  background: #20a0ff;
+  color: #fff;
+  border-radius: 4px;
+  padding: 2px 14px;
+}
+
 #image-editor {
   font-family: "SF Pro SC", "SF Pro Text", "SF Pro Icons", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
   user-select: none;
@@ -124,12 +131,6 @@ input {
       .menu {
         float: left;
         height: 100%;
-      }
-      .main-btn {
-        background: #20a0ff;
-        color: #fff;
-        border-radius: 4px;
-        padding: 2px 14px;
       }
     }
     .toolbar.funcbar {
@@ -172,10 +173,16 @@ input {
       .main-btn {
         padding: 2px 14px;
       }
+      .open {
+        font-size: 13px;
+        padding: 1px 15px;
+      }
       .download,
       .reset,
       .undo,
-      .restore {
+      .restore,
+      .demo,
+      .open {
         float: right;
       }
     }
@@ -253,8 +260,8 @@ input {
     }
   }
   .panel {
-    margin-left:auto;
-    margin-right:auto;
+    margin-left: auto;
+    margin-right: auto;
     position: relative;
     * {
       box-sizing: border-box;

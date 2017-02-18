@@ -1,14 +1,14 @@
 <template>
   <div id="image-editor" :style="imageEditorSty">
     <div class="toolbar-wrapper" :style="toolWrapperSty">
-      <Func :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @toggleBlur="toggleBlur" @toggleMosaic="toggleMosaic" @toggleFigure="toggleFigure" @toggleFilter="toggleFilter" @undo="undo" @restore="restore" @download="download" @reset="reset" />
-      <div class="toolbar enhance text-enhance" :style="enhanceSty" :class="textEnhanceCla">
+      <Func :sty='funcSty' @toggleText="toggleText" @toggleClip="toggleClip" @toggleBlur="toggleBlur" @toggleMosaic="toggleMosaic" @toggleFigure="toggleFigure" @toggleFilter="toggleFilter" @open="open" @demo="demo" @undo="undo" @restore="restore" @download="download" @reset="reset" />
+      <div class="toolbar enhance text-enhance" :style="enhanceSty" v-show="showText">
         <div class="menu">
           <List :btns="textFmList" v-model="textFmNow" :show="showTextFmSelect"></List>
           <label>
             颜色
             <input type="text" readonly="true" @click="toggleColorPicker" :style="colorInputSty" class="color-picker-input" />
-            <div class="color-picker" :class="colorPickerCla">
+            <div class="color-picker" v-show="textShowColorPicker">
               <color-picker v-model="textColors" @change-color="onColorChange"></color-picker>
             </div>
           </label>
@@ -35,13 +35,13 @@
           <label>
             阴影颜色
             <input type="text" readonly="true" @click="toggleShadowColorPicker" :style="shadowColorInputSty" class="color-picker-input" />
-            <div class="color-picker" :class="shadowColorPickerCla">
+            <div class="color-picker" v-show="textShowShadowColorPicker">
               <color-picker v-model="shadowColors" @change-color="onShadowColorChange"></color-picker>
             </div>
           </label>
         </div>
       </div>
-      <div class="toolbar enhance clip-enhance" :style="enhanceSty" :class="clipEnhanceCla">
+      <div class="toolbar enhance clip-enhance" :style="enhanceSty" v-show="showClip">
         <div class="menu">
           <button class="main-btn" @click="downloadClip">裁剪并导出</button>
           <List :btns="clipList" v-model="clipNow" :show="showClipSelect"></List>
@@ -63,7 +63,7 @@
           </label>
         </div>
       </div>
-      <div class="toolbar enhance blur-enhance" :style="enhanceSty" :class="blurEnhanceCla">
+      <div class="toolbar enhance blur-enhance" :style="enhanceSty" v-show="showBlur">
         <div class="menu">
           <label>
             模糊度
@@ -75,7 +75,7 @@
           </label>
         </div>
       </div>
-      <div class="toolbar enhance mosaic-enhance" :style="enhanceSty" :class="mosaicEnhanceCla">
+      <div class="toolbar enhance mosaic-enhance" :style="enhanceSty" v-show="showMosaic">
         <div class="menu">
           <List :btns="mosaicList" @change="mosaicSelect" v-model="mosaicNow" :show="showMosaicSelect"></List>
           <label>
@@ -96,13 +96,13 @@
           </label>
         </div>
       </div>
-      <div class="toolbar enhance figure-enhance" :style="enhanceSty" :class="figureEnhanceCla">
+      <div class="toolbar enhance figure-enhance" :style="enhanceSty" v-show="showFigure">
         <div class="menu">
           <List :btns="figureList" v-model="figureNow" :show="showFigureSelect"></List>
           <label>
             颜色
             <input type="text" readonly="true" @click="toggleFigureColorPicker" :style="colorFigureInputSty" class="color-picker-input" />
-            <div class="color-picker" :class="colorFigurePickerCla">
+            <div class="color-picker" v-show="figureShowShadowColorPicker">
               <color-picker v-model="figureColors" @change-color="onFigureColorChange"></color-picker>
             </div>
           </label>
@@ -128,7 +128,7 @@
           </label>
         </div>
       </div>
-      <div class="toolbar enhance filter-enhance" :style="enhanceSty" :class="filterEnhanceCla">
+      <div class="toolbar enhance filter-enhance" :style="enhanceSty" v-show="showFilter">
         <div class="menu">
           <List :btns="filterList" v-model="filterNow" :show="showFilterSelect" @change="filterSelect"></List>
         </div>
@@ -178,8 +178,6 @@ let DATA = {
   beforeBlur: null,
   beforeFilter: null
 }
-
-window.DATA = DATA
 
 export default {
   name: 'ImageEditor',
@@ -476,18 +474,6 @@ export default {
 
     // class
     // class text
-    colorPickerCla() {
-      return {
-        hide: !this.textShowColorPicker
-      }
-    },
-
-    shadowColorPickerCla() {
-      return {
-        hide: !this.textShowShadowColorPicker
-      }
-    },
-
     textCla() {
       return {
         hide: !this.showText,
@@ -495,55 +481,6 @@ export default {
         disabled: !this.textContenteditable
       }
     },
-
-    textEnhanceCla() {
-      return {
-        hide: !this.showText
-      }
-    },
-
-    clipCla() {
-      return {
-        hide: !this.showClip
-      }
-    },
-
-    clipEnhanceCla() {
-      return {
-        hide: !this.showClip
-      }
-    },
-
-    blurEnhanceCla() {
-      return {
-        hide: !this.showBlur
-      }
-    },
-
-    mosaicEnhanceCla() {
-      return {
-        hide: !this.showMosaic
-      }
-    },
-
-    figureEnhanceCla() {
-      return {
-        hide: !this.showFigure
-      }
-    },
-
-    colorFigurePickerCla() {
-      return {
-        hide: !this.figureShowShadowColorPicker
-      }
-    },
-
-    filterEnhanceCla() {
-      return {
-        hide: !this.showFilter
-      }
-    },
-
     // state
     blurRation() {
       return this.blurRangeW / this.blurMax
@@ -552,11 +489,9 @@ export default {
 
   methods: {
     // upload image
-    drop(e) {
-      let file, img
-      file = e.dataTransfer.files[0]
+    init(file) {
       this.url = URL.createObjectURL(file)
-      img = new Image()
+      let img = new Image()
       img.onload = () => {
         this.canvasW = img.width
         this.canvasH = img.height
@@ -569,6 +504,18 @@ export default {
         })
       }
       img.src = this.url
+    },
+
+    drop(e) {
+      this.init(e.dataTransfer.files[0])
+    },
+
+    open(e) {
+      this.init(e.target.files[0])
+    },
+
+    demo() {
+
     },
 
     // text
@@ -953,11 +900,11 @@ export default {
     paintFilter() {
       this.url = DATA.ctx.url()
       this.autoStage()
-      let name = this.filterList[this.filterNow]
+      let name = this.filterList[this.filterNow].name
       DATA.timeMachine.push({
         type: 'filter',
         detail: {
-          func: name
+          name
         }
       })
       DATA.nowStage++
@@ -1071,7 +1018,7 @@ export default {
         DATA.ctx.blur(detail.r)
       }
       if (type == 'filter') {
-        DATA.ctx[detail.func.name]()
+        DATA.ctx[detail.name]()
       }
       if (type == 'mosaic') {
         DATA.ctx.mosaic(detail.v, detail.l, detail.t, detail.w, detail.h)
