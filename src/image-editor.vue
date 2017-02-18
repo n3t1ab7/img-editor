@@ -350,8 +350,8 @@ export default {
     // style outer
     imageEditorSty() {
       return {
-        width: this.minCanvasW + 'px',
-        height: (this.minCanvasH + this.toolWrapperMargin + this.toolBarH + this.enhanceBarH + this.toolBarMargin) + 'px'
+        width: this.canvasW < this.minCanvasW ? this.minCanvasW + 'px' : this.canvasW + 'px',
+        height: ((this.canvasH < this.minCanvasH ? this.minCanvasH : this.canvasH) + this.toolWrapperMargin + this.toolBarH + this.enhanceBarH + this.toolBarMargin) + 'px'
       }
     },
 
