@@ -191,6 +191,8 @@ export default {
       toolBarH: 40,
       enhanceBarH: 30,
       toolBarMargin: 10,
+      minCanvasW: this.width,
+      minCanvasH: this.height,
       canvasW: this.width,
       canvasH: this.height,
       maskOpacity: 0.5,
@@ -322,8 +324,8 @@ export default {
       this.textW = DATA.ctx.textW(
         this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
       this.$nextTick(function() {
-        beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
-        beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.canvasH
+        beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.minCanvasW
+        beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.minCanvasH
         if (beyondW > 0 || beyondH > 0) {
           this.textFz = old
         }
@@ -334,8 +336,8 @@ export default {
       this.textW = DATA.ctx.textW(
         this.textText, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
       this.$nextTick(function() {
-        beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
-        beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.canvasH
+        beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.minCanvasW
+        beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.minCanvasH
         if (beyondW > 0 || beyondH > 0) {
           this.textFmNow = old
         }
@@ -348,15 +350,15 @@ export default {
     // style outer
     imageEditorSty() {
       return {
-        width: this.canvasW + 'px',
-        height: (this.canvasH + this.toolWrapperMargin + this.toolBarH + this.enhanceBarH + this.toolBarMargin) + 'px'
+        width: this.minCanvasW + 'px',
+        height: (this.minCanvasH + this.toolWrapperMargin + this.toolBarH + this.enhanceBarH + this.toolBarMargin) + 'px'
       }
     },
 
     toolWrapperSty() {
       return {
         height: this.toolBarH + this.enhanceBarH + this.toolBarMargin + 'px',
-        marginBottom: this.toolWrapperMargin + 'px'
+        marginBottom: this.canvasH < this.minCanvasH ? (this.minCanvasH - this.canvasH + this.toolWrapperMargin) / 2 + 'px' : this.toolWrapperMargin + 'px'
       }
     },
 
@@ -580,7 +582,7 @@ export default {
       let beyond, countWillRemove
       this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
       this.$nextTick(function() {
-        beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
+        beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.minCanvasW
         if (beyond > 0) {
           countWillRemove = Math.floor((beyond / (this.textW / this.textText.length)))
           this.textText = this.textText.slice(0, this.textText.length - countWillRemove - 1)
@@ -771,8 +773,8 @@ export default {
 
     setMosaic(value) {
       let canvas = document.createElement('canvas')
-      canvas.width = this.canvasW
-      canvas.height = this.canvasH
+      canvas.width = this.minCanvasW
+      canvas.height = this.minCanvasH
       DATA.mosaicCtx = new Ctx(canvas)
       DATA.mosaicCtx.put(DATA.ctx.get())
       DATA.mosaicCtx.mosaic(value)
@@ -1026,10 +1028,10 @@ export default {
         offset = getPointerToElem(e, this.$refs.canvas)
         left = offset.left - this.textToPointer.left
         top = offset.top - this.textToPointer.top
-        if (left >= 0 && left <= this.canvasW - parseFloat(this.textSty.width)) {
+        if (left >= 0 && left <= this.minCanvasW - parseFloat(this.textSty.width)) {
           this.textL = left
         }
-        if (top >= 0 && top <= this.canvasH - parseFloat(this.textSty.height)) {
+        if (top >= 0 && top <= this.minCanvasH - parseFloat(this.textSty.height)) {
           this.textT = top
         }
       }
