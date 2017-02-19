@@ -162,7 +162,7 @@ export default class Ctx {
     let colorCorrected = ColorMatrix(s, { contrast: 30, brightness: -30 });
     this.put(colorCorrected);
   }
-  
+
   downloadRect(x = 0, y = 0, w = this.w, h = this.h) {
     let a, url
     a = document.createElement('a')

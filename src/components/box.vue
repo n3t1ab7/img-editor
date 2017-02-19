@@ -119,17 +119,33 @@ export default {
 
   mounted() {
     let d = document
-    let offset, left, top
+    let offset, left, top, moveL, moveT
     d.addEventListener('mousemove', (e) => {
       if (this.boxCanDrag) {
         offset = getPointerToElem(e, this.canvas)
         left = offset.left - this.boxToPointer.left
         top = offset.top - this.boxToPointer.top
-        if (left >= 0 && left <= this.canvasW - parseFloat(this.sty.width)) {
+        moveL = this.canvasW - parseFloat(this.sty.width)
+        moveT = this.canvasH - parseFloat(this.sty.height)
+        if (left >= 0 && left <= moveL) {
           this.boxL = left
+        } else {
+          if (left < 0) {
+            this.boxL = 0
+          }
+          if (left > moveL) {
+            this.boxL = moveL
+          }
         }
-        if (top >= 0 && top <= this.canvasH - parseFloat(this.sty.height)) {
+        if (top >= 0 && top <= moveT) {
           this.boxT = top
+        } else {
+          if (top < 0) {
+            this.boxT = 0
+          }
+          if (top > moveT) {
+            this.boxT = moveT
+          }
         }
         this.$emit('change', {
           width: this.boxW,

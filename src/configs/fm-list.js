@@ -7,29 +7,25 @@ let fmList = [{
   value: 'sans-serif',
   idx: 1
 }, {
-  name: '微软雅黑',
-  value: 'Microsoft YaHei',
-  idx: 2,
-}, {
   name: 'Monaco',
   value: 'Monaco',
-  idx: 3
+  idx: 2
 }, {
   name: 'Arial',
   value: 'Arial',
-  idx: 4
+  idx: 3
 }, {
   name: 'Helvetica',
   value: 'Helvetica',
-  idx: 5
+  idx: 4
 }, {
   name: 'Comic Sans MS',
   value: 'Comic Sans MS',
-  idx: 6
+  idx: 5
 }, {
   name: 'monospace',
   value: 'monospace',
-  idx: 7
+  idx: 6
 }]
 
 export default fmList

@@ -14,14 +14,14 @@
         <button class="main-btn reset" @click="reset">重置</button>
         <button class="main-btn restore" @click="restore"><i class="icon">&#xe6d2;</i></button>
         <button class="main-btn undo" @click="undo"><i class="icon">&#xe69a;</i></button>
-        <button class="main-btn demo" @click="demo">示例</button>
+        <button class="main-btn demo" @click="demo">使用示例图片</button>
         <label class="main-btn open">浏览
           <input type="file" style="display:none" @change="open">
         </label>
       </div>
       <div class="toolbar enhance text-enhance" :style="enhanceSty" v-show="showText">
         <div class="menu">
-          <List :btns="textFmList" v-model="textFmNow" :show="showTextFmSelect"></List>
+          <List :btns="textFmList" v-model="textFmNow"></List>
           <label>
             颜色
             <input type="text" readonly="true" @click="toggleColorPicker" :style="colorInputSty" class="color-picker-input" />
@@ -61,7 +61,7 @@
       <div class="toolbar enhance clip-enhance" :style="enhanceSty" v-show="showClip">
         <div class="menu">
           <button class="main-btn" @click="downloadClip">裁剪并导出</button>
-          <List :btns="clipList" v-model="clipNow" :show="showClipSelect"></List>
+          <List :btns="clipList" v-model="clipNow"></List>
           <label>
             水平
             <input type="number" class="clip-input" v-model="clipL" />
@@ -94,7 +94,7 @@
       </div>
       <div class="toolbar enhance mosaic-enhance" :style="enhanceSty" v-show="showMosaic">
         <div class="menu">
-          <List :btns="mosaicList" @change="mosaicSelect" v-model="mosaicNow" :show="showMosaicSelect"></List>
+          <List :btns="mosaicList" @change="mosaicSelect" v-model="mosaicNow"></List>
           <label>
             水平
             <input type="number" v-model="mosaicL" />
@@ -115,7 +115,7 @@
       </div>
       <div class="toolbar enhance figure-enhance" :style="enhanceSty" v-show="showFigure">
         <div class="menu">
-          <List :btns="figureList" v-model="figureNow" :show="showFigureSelect"></List>
+          <List :btns="figureList" v-model="figureNow"></List>
           <label>
             颜色
             <input type="text" readonly="true" @click="toggleFigureColorPicker" :style="colorFigureInputSty" class="color-picker-input" />
@@ -147,7 +147,7 @@
       </div>
       <div class="toolbar enhance filter-enhance" :style="enhanceSty" v-show="showFilter">
         <div class="menu">
-          <List :btns="filterList" v-model="filterNow" :show="showFilterSelect" @change="filterSelect"></List>
+          <List :btns="filterList" v-model="filterNow" @change="filterSelect"></List>
         </div>
       </div>
     </div>
@@ -202,7 +202,7 @@ let DATA = {
 export default {
   name: 'ImageEditor',
 
-  props: ['width', 'height'],
+  props: ['minWidth', 'maxWidth'],
   components: {
     'color-picker': Chrome,
     Box,
@@ -215,12 +215,12 @@ export default {
       toolBarH: 40,
       enhanceBarH: 30,
       toolBarMargin: 10,
-      minCanvasW: this.width,
-      minCanvasH: this.height,
-      canvasW: this.width,
-      canvasH: this.height,
+      minCanvasW: this.minWidth,
+      minCanvasH: 500,
+      canvasW: this.minWidth,
+      canvasH: 500,
       maskOpacity: 0.5,
-      maxCanvasW: 1050,
+      maxCanvasW: this.maxWidth,
 
       // text style
       textL: 10,
@@ -284,7 +284,6 @@ export default {
       textShowShadowColorPicker: false,
       textFmList: fmList,
       textFmNow: 0,
-      showTextFmSelect: false,
 
       // clip state
       clipCanDrag: false,
@@ -296,7 +295,6 @@ export default {
         idx: 1
       }],
       clipNow: 0,
-      showClipSelect: false,
 
       // blur state
       blur: 0,
@@ -315,7 +313,6 @@ export default {
         idx: 1
       }],
       mosaicNow: 0,
-      showMosaicSelect: false,
 
       // figure state
       figureCanDrag: false,
@@ -328,7 +325,6 @@ export default {
         idx: 1
       }],
       figureNow: 0,
-      showFigureSelect: false,
 
       // filter state
       filterList: [{
@@ -339,7 +335,6 @@ export default {
         idx: 1
       }],
       filterNow: 0,
-      showFilterSelect: false,
 
       // data url
       url: null,
@@ -353,20 +348,21 @@ export default {
       this.textW = DATA.ctx.textW(
         this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
       this.$nextTick(function() {
-        beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.minCanvasW
-        beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.minCanvasH
+        beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
+        beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.canvasH
         if (beyondW > 0 || beyondH > 0) {
           this.textFz = old
         }
       })
     },
+
     textFmNow(val, old) {
       let beyondW, beyondH
       this.textW = DATA.ctx.textW(
         this.textText, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
       this.$nextTick(function() {
-        beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.minCanvasW
-        beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.minCanvasH
+        beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
+        beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.canvasH
         if (beyondW > 0 || beyondH > 0) {
           this.textFmNow = old
         }
@@ -507,7 +503,6 @@ export default {
         natureW = img.width
         natureH = img.height
         if (natureW > this.maxCanvasW) {
-          console.log(natureW, natureH)
           scale = natureW / this.maxCanvasW
         }
         this.canvasW = natureW / scale
@@ -580,7 +575,7 @@ export default {
       let beyond, countWillRemove
       this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
       this.$nextTick(function() {
-        beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.minCanvasW
+        beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
         if (beyond > 0) {
           countWillRemove = Math.floor((beyond / (this.textW / this.textText.length)))
           this.textText = this.textText.slice(0, this.textText.length - countWillRemove - 1)
@@ -1080,7 +1075,7 @@ export default {
 
   mounted() {
     let d = document
-    let offset, left, top;
+    let offset, left, top, moveT, moveL;
 
     ['dragleave', 'drop', 'dragenter', 'dragover'].forEach((name) => document.body.addEventListener(name, (e) => e.preventDefault()))
 
@@ -1089,11 +1084,27 @@ export default {
         offset = getPointerToElem(e, this.$refs.canvas)
         left = offset.left - this.textToPointer.left
         top = offset.top - this.textToPointer.top
-        if (left >= 0 && left <= this.canvasW - parseFloat(this.textSty.width)) {
+        moveL = this.canvasW - parseFloat(this.textSty.width)
+        moveT = this.canvasH - parseFloat(this.textSty.height)
+        if (left >= 0 && left <= moveL) {
           this.textL = left
+        } else {
+          if (left < 0) {
+            this.textL = 0
+          }
+          if (left > moveL) {
+            this.textL = moveL
+          }
         }
-        if (top >= 0 && top <= this.canvasH - parseFloat(this.textSty.height)) {
+        if (top >= 0 && top <= moveT) {
           this.textT = top
+        } else {
+          if (top < 0) {
+            this.textT = 0
+          }
+          if (top > moveT) {
+            this.textT = moveT
+          }
         }
       }
     })
