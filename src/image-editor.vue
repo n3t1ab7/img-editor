@@ -333,6 +333,9 @@ export default {
       }, {
         name: 'Blend',
         idx: 1
+      }, {
+        name: 'Gary',
+        idx: 2
       }],
       filterNow: 0,
 
@@ -937,10 +940,9 @@ export default {
       coped = copy(DATA.beforeFilter)
       if (this.filterNow == 0) {
         DATA.ctx.put(DATA.beforeFilter)
-      }
-      if (this.filterNow == 1) {
+      } else {
         DATA.ctx.put(coped)
-        DATA.ctx.Blend()
+        DATA.ctx[this.filterList[this.filterNow].name]()
       }
     },
 

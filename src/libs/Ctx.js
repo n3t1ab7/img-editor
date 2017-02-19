@@ -163,6 +163,30 @@ export default class Ctx {
     this.put(colorCorrected);
   }
 
+  Gary() {
+    let imgData = this.get()
+    let x, y, r, g, b, a, gray, idx
+    for (x = 0; x < imgData.width; x++) {
+      for (y = 0; y < imgData.height; y++) {
+        idx = (x + y * imgData.width) * 4;
+        r = imgData.data[idx + 0]
+        g = imgData.data[idx + 1]
+        b = imgData.data[idx + 2]
+        gray = .299 * r + .587 * g + .114 * b;
+        imgData.data[idx + 0] = gray
+        imgData.data[idx + 1] = gray
+        imgData.data[idx + 2] = gray
+        imgData.data[idx + 3] = 255
+        if (x < 8 || y < 8 || x > (imgData.width - 8) || y > (imgData.height - 8)) {
+          imgData.data[idx + 0] = 0
+          imgData.data[idx + 1] = 0
+          imgData.data[idx + 2] = 0
+        }
+      }
+    }
+    this.put(imgData)
+  }
+
   downloadRect(x = 0, y = 0, w = this.w, h = this.h) {
     let a, url
     a = document.createElement('a')
