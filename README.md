@@ -1,3 +1,3 @@
-# image-editor
+# 图片编辑器
+!['Image-Editor'](/cover.png)
 
-> 正在开发
