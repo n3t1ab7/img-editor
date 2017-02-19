@@ -178,16 +178,16 @@ import {
   getPointerToElem,
   copy
 }
-from './utils.js'
+from './libs/utils.js'
 import List from './components/select.vue'
 import Box from './components/box.vue'
 import {
   Chrome
 }
 from 'vue-color'
-import Ctx from './ctx.js'
+import Ctx from './libs/Ctx.js'
 import demoImg from './assert/img.jpg'
-import fmList from './fm-list.js'
+import fmList from './configs/fm-list.js'
 
 let DATA = {
   initData: null,
@@ -220,6 +220,7 @@ export default {
       canvasW: this.width,
       canvasH: this.height,
       maskOpacity: 0.5,
+      maxCanvasW: 1050,
 
       // text style
       textL: 10,
@@ -501,15 +502,25 @@ export default {
     // upload image
     init(url) {
       let img = new Image()
+      let natureW, natureH, scale = 1
       img.onload = () => {
-        this.canvasW = img.width
-        this.canvasH = img.height
+        natureW = img.width
+        natureH = img.height
+        if (natureW > this.maxCanvasW) {
+          console.log(natureW, natureH)
+          scale = natureW / this.maxCanvasW
+        }
+        this.canvasW = natureW / scale
+        this.canvasH = natureH / scale
         this.$nextTick(function() {
+          DATA.ctx = new Ctx(this.$refs.canvas);
+          DATA.ctx.ctx.save()
+          DATA.ctx.ctx.scale(1 / scale, 1 / scale);
+          DATA.ctx.put(img)
+          DATA.ctx.ctx.restore()
+          DATA.initData = DATA.ctx.get()
           this.reset()
           this.canPaint = true
-          DATA.ctx = new Ctx(this.$refs.canvas);
-          DATA.ctx.put(img)
-          DATA.initData = DATA.ctx.get()
         })
       }
       img.src = url
@@ -1060,7 +1071,10 @@ export default {
       if (this.showMosaic) {
         this.paintMosaic()
       }
-      DATA.ctx.download()
+      if (this.showFigure) {
+        this.paintFigure()
+      }
+      DATA.ctx.downloadRect()
     }
   },
 

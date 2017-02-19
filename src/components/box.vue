@@ -12,7 +12,7 @@ import {
   getElemOffset,
   getPointerToElem,
 }
-from '../utils.js'
+from '../libs/utils.js'
 
 export default {
   name: 'Box',
