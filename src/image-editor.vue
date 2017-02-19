@@ -186,6 +186,8 @@ import {
 }
 from 'vue-color'
 import Ctx from './ctx.js'
+import demoImg from './assert/img.jpg'
+import fmList from './fm-list.js'
 
 let DATA = {
   initData: null,
@@ -279,15 +281,7 @@ export default {
       textToPointer: null,
       textShowColorPicker: false,
       textShowShadowColorPicker: false,
-      textFmList: [{
-        name: '系统默认衬线字体',
-        value: 'serif',
-        idx: 0
-      }, {
-        name: '系统默认无衬线字体',
-        value: 'sans-serif',
-        idx: 1
-      }],
+      textFmList: fmList,
       textFmNow: 0,
       showTextFmSelect: false,
 
@@ -340,7 +334,7 @@ export default {
         name: '无',
         idx: 0
       }, {
-        name: 'blend',
+        name: 'Blend',
         idx: 1
       }],
       filterNow: 0,
@@ -505,8 +499,7 @@ export default {
 
   methods: {
     // upload image
-    init(file) {
-      this.url = URL.createObjectURL(file)
+    init(url) {
       let img = new Image()
       img.onload = () => {
         this.canvasW = img.width
@@ -519,19 +512,21 @@ export default {
           DATA.initData = DATA.ctx.get()
         })
       }
-      img.src = this.url
+      img.src = url
     },
 
     drop(e) {
-      this.init(e.dataTransfer.files[0])
+      let url = URL.createObjectURL(e.dataTransfer.files[0])
+      this.init(url)
     },
 
     open(e) {
-      this.init(e.target.files[0])
+      let url = URL.createObjectURL(e.target.files[0])
+      this.init(url)
     },
 
     demo() {
-
+      this.init(demoImg)
     },
 
     // text
@@ -939,7 +934,7 @@ export default {
       }
       if (this.filterNow == 1) {
         DATA.ctx.put(coped)
-        DATA.ctx.blend()
+        DATA.ctx.Blend()
       }
     },
 

@@ -154,7 +154,7 @@ export default class Ctx {
     this.put(imgData, x, y)
   }
 
-  blend() {
+  Blend() {
     let gradient = toasterGradient(this.w, this.h)
     let s = screen(this.ctx, gradient, this.w, this.h, function(bottomPixel, topPixel) {
       return 255 - (255 - topPixel) * (255 - bottomPixel) / 255;
@@ -162,7 +162,7 @@ export default class Ctx {
     let colorCorrected = ColorMatrix(s, { contrast: 30, brightness: -30 });
     this.put(colorCorrected);
   }
-
+  
   downloadRect(x = 0, y = 0, w = this.w, h = this.h) {
     let a, url
     a = document.createElement('a')
