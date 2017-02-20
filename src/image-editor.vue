@@ -179,15 +179,21 @@ import {
   copy
 }
 from './libs/utils.js'
+import Ctx from './libs/Ctx.js'
+
 import List from './components/select.vue'
 import Box from './components/box.vue'
 import {
   Chrome
 }
 from 'vue-color'
-import Ctx from './libs/Ctx.js'
+
 import demoImg from './assert/img.jpg'
-import fmList from './configs/fm-list.js'
+import fmList from './configs/fm-list.json'
+import figureList from './configs/figure-list.json'
+import clipList from './configs/clip-list.json'
+import mosaicList from './configs/mosaic-list.json'
+import filterList from './configs/filter-list.json'
 
 let DATA = {
   initData: null,
@@ -287,13 +293,7 @@ export default {
 
       // clip state
       clipCanDrag: false,
-      clipList: [{
-        name: '矩形',
-        idx: 0
-      }, {
-        name: '圆形',
-        idx: 1
-      }],
+      clipList: clipList,
       clipNow: 0,
 
       // blur state
@@ -303,43 +303,17 @@ export default {
 
       // mosaic state
       mosaicCanDrag: false,
-      mosaicList: [{
-        name: '轻度',
-        value: 5,
-        idx: 0
-      }, {
-        name: '重度',
-        value: 10,
-        idx: 1
-      }],
+      mosaicList: mosaicList,
       mosaicNow: 0,
 
       // figure state
       figureCanDrag: false,
       figureShowShadowColorPicker: false,
-      figureList: [{
-        name: '矩形',
-        idx: 0
-      }, {
-        name: '圆形',
-        idx: 1
-      }],
+      figureList: figureList,
       figureNow: 0,
 
       // filter state
-      filterList: [{
-        name: '无',
-        idx: 0
-      }, {
-        name: 'Blend',
-        idx: 1
-      }, {
-        name: 'Gary',
-        idx: 2
-      }, {
-        name: 'Oil',
-        idx: 3
-      }],
+      filterList: filterList,
       filterNow: 0,
 
       // data url
@@ -585,6 +559,7 @@ export default {
         beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
         if (beyond > 0) {
           countWillRemove = Math.ceil((beyond / ((this.textW - this.textBorder * 2) / this.textText.length)))
+          console.log(countWillRemove)
           this.textText = this.textText.slice(0, this.textText.length - countWillRemove - 1)
           this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
         }

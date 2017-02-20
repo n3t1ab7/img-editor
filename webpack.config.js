@@ -37,7 +37,10 @@ module.exports = {
           name: '[name].[ext]?[hash]'
         }
       },
-      { test: /\.(eot|woff|ttf)$/, loader: "file-loader" }
+      { test: /\.(eot|woff|ttf)$/, loader: "file-loader" }, {
+        test: /\.json$/,
+        use: 'json-loader'
+      }
     ]
   },
   resolve: {

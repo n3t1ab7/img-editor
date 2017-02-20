@@ -1,0 +1,29 @@
+[{
+  "name": "系统默认衬线字体",
+  "value": "serif",
+  "idx": 0
+}, {
+  "name": "系统默认无衬线字体",
+  "value": "sans-serif",
+  "idx": 1
+}, {
+  "name": "Monaco",
+  "value": "Monaco",
+  "idx": 2
+}, {
+  "name": "Arial",
+  "value": "Arial",
+  "idx": 3
+}, {
+  "name": "Helvetica",
+  "value": "Helvetica",
+  "idx": 4
+}, {
+  "name": "Comic Sans MS",
+  "value": "Comic Sans MS",
+  "idx": 5
+}, {
+  "name": "monospace",
+  "value": "monospace",
+  "idx": 6
+}]
