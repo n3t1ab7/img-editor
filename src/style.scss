@@ -174,8 +174,9 @@ input {
         padding: 2px 14px;
       }
       .open {
+        cursor: pointer;
         font-size: 13px;
-        padding: 1px 15px;
+        padding: 0 15px;
       }
       .download,
       .reset,
