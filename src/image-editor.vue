@@ -3,18 +3,18 @@
     <div class="toolbar-wrapper" :style="toolWrapperSty">
       <div class="toolbar funcbar" :style="funcSty">
         <div class="menu">
-          <button @click="toggleText"><i class="icon">&#xe633;</i>文本</button>
-          <button @click="toggleClip"><i class="icon">&#xe600;</i>裁剪</button>
-          <button @click="toggleBlur"><i class="icon">&#xe67d;</i>模糊</button>
-          <button @click="toggleMosaic"><i class="icon">&#xe6b3;</i>马赛克</button>
-          <button @click="toggleFigure"><i class="icon">&#xe605;</i>图形</button>
-          <button @click="toggleFilter"><i class="icon">&#xe601;</i>滤镜</button>
+          <a @click="toggleText"><i class="icon">&#xe633;</i>文本</a>
+          <a @click="toggleClip"><i class="icon">&#xe600;</i>裁剪</a>
+          <a @click="toggleBlur"><i class="icon">&#xe67d;</i>模糊</a>
+          <a @click="toggleMosaic"><i class="icon">&#xe6b3;</i>马赛克</a>
+          <a @click="toggleFigure"><i class="icon">&#xe605;</i>图形</a>
+          <a @click="toggleFilter"><i class="icon">&#xe601;</i>滤镜</a>
         </div>
-        <button class="main-btn download" @click="download">导出</button>
-        <button class="main-btn reset" @click="reset">重置</button>
-        <button class="main-btn restore" @click="restore"><i class="icon">&#xe6d2;</i></button>
-        <button class="main-btn undo" @click="undo"><i class="icon">&#xe69a;</i></button>
-        <button class="main-btn demo" @click="demo">使用示例图片</button>
+        <a class="main-btn download" @click="download">导出</a>
+        <a class="main-btn reset" @click="reset">重置</a>
+        <a class="main-btn restore" @click="restore"><i class="icon">&#xe6d2;</i></a>
+        <a class="main-btn undo" @click="undo"><i class="icon">&#xe69a;</i></a>
+        <a class="main-btn demo" @click="demo">使用示例图片</a>
         <label class="main-btn open">打开
           <input type="file" style="visibility:hidden;display:block;width:1;height:0" @change="open">
         </label>
@@ -60,7 +60,7 @@
       </div>
       <div class="toolbar enhance clip-enhance" :style="enhanceSty" v-show="showClip">
         <div class="menu">
-          <button class="main-btn" @click="downloadClip">裁剪并导出</button>
+          <a class="main-btn" @click="downloadClip">裁剪并导出</a>
           <List :btns="clipList" v-model="clipNow"></List>
           <label>
             水平

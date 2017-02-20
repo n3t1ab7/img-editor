@@ -45,15 +45,18 @@ body {
   padding: 0;
 }
 
-button {
+.main-btn,
+.menu a {
   position: relative;
   display: inline-block;
   border: none;
   cursor: pointer;
   outline: none;
   box-sizing: border-box;
-  background: #fff;
   margin-left: 5px;
+  background: #20a0ff;
+  border-radius: 4px;
+  padding: 2px 14px;
   transition: opacity 300ms;
   &:hover {
     opacity: 0.8;
@@ -73,28 +76,31 @@ input {
 .select {
   position: relative;
   display: inline-block;
-  height: 20px;
+  height: 25px;
   width: 130px;
   * {
     margin: 0;
     padding: 0;
   }
-  button {
+  a {
     display: block;
     background: #f5f6fa;
     color: #747272;
     width: 100%;
     height: 25px;
+    line-height: 25px;
     border: 1px solid #ccc;
+    padding: 0;
+    margin: 0;
+    padding-left: 10px;
     border-radius: 6px;
-    padding: 5px 10px;
     text-align: left;
     &:hover {
       opacity: 1
     }
     .icon {
       position: absolute;
-      right: 10px;
+      right: 0;
     }
   }
   div {
@@ -103,7 +109,7 @@ input {
     top: 25px;
     left: 0;
     width: 100%;
-    button {
+    a {
       border: none;
       border-radius: 0;
       &:last-of-type {
@@ -111,13 +117,6 @@ input {
       }
     }
   }
-}
-
-.main-btn {
-  background: #20a0ff;
-  color: #fff;
-  border-radius: 4px;
-  padding: 2px 14px;
 }
 
 #image-editor {
@@ -149,11 +148,12 @@ input {
       .icon {
         font-size: 12px;
       }
-      button {
+      a {
         margin-left: 10px;
         font-size: 13px;
       }
       .main-btn {
+        color: #fff;
         margin-top: 9px;
         &:nth-of-type(1) {
           margin-right: 7px;
@@ -162,7 +162,8 @@ input {
       .menu {
         line-height: 38px;
         margin-left: 7px;
-        button {
+        color: #000;
+        a {
           margin-top: 0;
           background: transparent;
           &:first-of-type {
@@ -176,7 +177,7 @@ input {
       .open {
         cursor: pointer;
         font-size: 13px;
-        padding: 0 15px;
+        padding: 1px 15px;
       }
       .download,
       .reset,
@@ -213,10 +214,12 @@ input {
       }
     }
     .toolbar.clip-enhance {
-      line-height: 30px;
+      line-height: 25px;
       .menu {
         .main-btn {
           height: 25px;
+          margin-top: 2px;
+          color: #fff;
         }
       }
       input.clip-input {
@@ -225,7 +228,7 @@ input {
     }
     .toolbar.blur-enhance {
       .menu:first-of-type {
-        line-height: 30px;
+        line-height: 33px;
       }
       .menu:nth-of-type(2) {
         line-height: 27px;
@@ -236,12 +239,12 @@ input {
     }
     .toolbar.blur-enhance {
       .menu {
-        line-height: 30px;
+        line-height: 33px;
       }
     }
     .toolbar.mosaic-enhance {
       .menu {
-        line-height: 30px;
+        line-height: 33px;
       }
     }
     .toolbar.figure-enhance {

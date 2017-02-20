@@ -1,8 +1,8 @@
 <template>
   <label class="select">
-    <button @click="toggleSelect"> {{now.name}}<i class="icon">&#xe608;</i></button>
+    <a @click="toggleSelect"> {{now.name}}<i class="icon">&#xe608;</i></a>
     <div v-show="show">
-      <button v-for="btn in btns" @click.stop="clickBtn" :data-id="btn.idx">{{btn.name}}</button>
+      <a v-for="btn in btns" @click.stop="clickBtn" :data-id="btn.idx">{{btn.name}}</a>
     </div>
   </label>
 </template>
