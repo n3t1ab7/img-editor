@@ -1,5 +1,6 @@
 <template>
   <div id="image-editor" :style="imageEditorSty">
+    <a id="download-link" class="hide"></a>
     <div class="toolbar-wrapper" :style="toolWrapperSty">
       <div class="toolbar funcbar" :style="funcSty">
         <div class="menu">

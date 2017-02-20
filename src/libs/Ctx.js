@@ -255,7 +255,7 @@ export default class Ctx {
 
   downloadRect(x = 0, y = 0, w = this.w, h = this.h) {
     let a, url
-    a = document.createElement('a')
+    a = document.getElementById('download-link')
     url = this.url(x, y, w, h)
     a.href = url
     a.download = String(+(new Date))
