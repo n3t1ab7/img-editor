@@ -189,7 +189,7 @@ import {
 }
 from 'vue-color'
 
-import demoImg from './assert/img.jpg'
+import demoImg from './assert/img.png'
 import fmList from './configs/fm-list.json'
 import figureList from './configs/figure-list.json'
 import clipList from './configs/clip-list.json'
