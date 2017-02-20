@@ -177,11 +177,6 @@ export default class Ctx {
         imgData.data[idx + 1] = gray
         imgData.data[idx + 2] = gray
         imgData.data[idx + 3] = 255
-        if (x < 8 || y < 8 || x > (imgData.width - 8) || y > (imgData.height - 8)) {
-          imgData.data[idx + 0] = 0
-          imgData.data[idx + 1] = 0
-          imgData.data[idx + 2] = 0
-        }
       }
     }
     this.put(imgData)

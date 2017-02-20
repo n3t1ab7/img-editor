@@ -501,6 +501,7 @@ export default {
     // upload image
     init(url) {
       let img = new Image()
+      img.crossOrigin = "Anonymous";
       let natureW, natureH, scale = 1
       img.onload = () => {
         natureW = img.width
