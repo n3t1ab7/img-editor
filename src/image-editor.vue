@@ -584,7 +584,7 @@ export default {
       this.$nextTick(function() {
         beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
         if (beyond > 0) {
-          countWillRemove = Math.floor((beyond / (this.textW / this.textText.length)))
+          countWillRemove = Math.ceil((beyond / ((this.textW - this.textBorder * 2) / this.textText.length)))
           this.textText = this.textText.slice(0, this.textText.length - countWillRemove - 1)
           this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
         }
