@@ -182,6 +182,77 @@ export default class Ctx {
     this.put(imgData)
   }
 
+  Oil(radius = 4, intensity = 55) {
+    let width = this.w,
+      height = this.h,
+      imgData = this.get(),
+      pixData = imgData.data,
+      destCanvas = document.createElement("canvas"),
+      dCtx = destCanvas.getContext("2d"),
+      pixelIntensityCount = []
+    let destImageData = dCtx.createImageData(width, height),
+      destPixData = destImageData.data,
+      intensityLUT = [],
+      rgbLUT = []
+    let y, x, r, g, b, a, idx, avg, xx, yy, intensityVal, curMax, dIdx
+    destCanvas.width = width
+    destCanvas.height = height
+    for (y = 0; y < height; y++) {
+      intensityLUT[y] = [];
+      rgbLUT[y] = [];
+      for (x = 0; x < width; x++) {
+        idx = (y * width + x) * 4,
+          r = pixData[idx],
+          g = pixData[idx + 1],
+          b = pixData[idx + 2],
+          avg = (r + g + b) / 3
+
+        intensityLUT[y][x] = Math.round((avg * intensity) / 255)
+        rgbLUT[y][x] = {
+          r: r,
+          g: g,
+          b: b
+        }
+      }
+    }
+    for (y = 0; y < height; y++) {
+      for (x = 0; x < width; x++) {
+        pixelIntensityCount = [];
+        for (yy = -radius; yy <= radius; yy++) {
+          for (xx = -radius; xx <= radius; xx++) {
+            if (y + yy > 0 && y + yy < height && x + xx > 0 && x + xx < width) {
+              intensityVal = intensityLUT[y + yy][x + xx]
+
+              if (!pixelIntensityCount[intensityVal]) {
+                pixelIntensityCount[intensityVal] = {
+                  val: 1,
+                  r: rgbLUT[y + yy][x + xx].r,
+                  g: rgbLUT[y + yy][x + xx].g,
+                  b: rgbLUT[y + yy][x + xx].b
+                }
+              } else {
+                pixelIntensityCount[intensityVal].val++
+                  pixelIntensityCount[intensityVal].r += rgbLUT[y + yy][x + xx].r
+                pixelIntensityCount[intensityVal].g += rgbLUT[y + yy][x + xx].g
+                pixelIntensityCount[intensityVal].b += rgbLUT[y + yy][x + xx].b
+              }
+            }
+          }
+        }
+        pixelIntensityCount.sort(function(a, b) {
+          return b.val - a.val
+        });
+        curMax = pixelIntensityCount[0].val
+        dIdx = (y * width + x) * 4
+        destPixData[dIdx] = ~~(pixelIntensityCount[0].r / curMax)
+        destPixData[dIdx + 1] = ~~(pixelIntensityCount[0].g / curMax)
+        destPixData[dIdx + 2] = ~~(pixelIntensityCount[0].b / curMax)
+        destPixData[dIdx + 3] = 255
+      }
+    }
+    this.put(destImageData)
+  }
+
   downloadRect(x = 0, y = 0, w = this.w, h = this.h) {
     let a, url
     a = document.createElement('a')

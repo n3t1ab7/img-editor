@@ -16,7 +16,7 @@
         <button class="main-btn undo" @click="undo"><i class="icon">&#xe69a;</i></button>
         <button class="main-btn demo" @click="demo">使用示例图片</button>
         <label class="main-btn open">浏览
-          <input type="file" style="display:none" @change="open">
+          <input type="file" style="visibility:hidden;display:block;width:1;height:0" @change="open">
         </label>
       </div>
       <div class="toolbar enhance text-enhance" :style="enhanceSty" v-show="showText">
@@ -336,6 +336,9 @@ export default {
       }, {
         name: 'Gary',
         idx: 2
+      }, {
+        name: 'Oil',
+        idx: 3
       }],
       filterNow: 0,
 
