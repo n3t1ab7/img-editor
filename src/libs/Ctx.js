@@ -127,6 +127,7 @@ export default class Ctx {
     let result
     this.ctx.font = fz + 'px ' + fm
     result = this.ctx.measureText(txt).width
+    result = result + 2
     return result > min ? result : min
   }
 

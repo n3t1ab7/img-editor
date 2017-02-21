@@ -561,7 +561,7 @@ export default {
         if (beyond > 0) {
           countWillRemove = Math.floor((beyond / (this.textW / this.textText.length)))
           this.textText = this.textText.slice(0, this.textText.length - countWillRemove - 1)
-          this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
+          this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
         }
       })
     },
