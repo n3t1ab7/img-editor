@@ -286,7 +286,7 @@ export default class Ctx {
     img.onload = function() {
       ctx.drawImage(img, -l, -t)
       url = canvas.toDataURL()
-      link = document.createElement('a')
+      link = document.getElementById('download-link')
       link.href = url
       link.download = String(+(new Date))
       link.click()
