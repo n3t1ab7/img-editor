@@ -132,8 +132,7 @@ export default {
         } else {
           if (left < 0) {
             this.boxL = 0
-          }
-          if (left > moveL) {
+          } else {
             this.boxL = moveL
           }
         }
@@ -142,8 +141,7 @@ export default {
         } else {
           if (top < 0) {
             this.boxT = 0
-          }
-          if (top > moveT) {
+          } else {
             this.boxT = moveT
           }
         }

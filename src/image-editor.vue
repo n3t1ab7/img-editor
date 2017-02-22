@@ -916,13 +916,15 @@ export default {
 
     filterSelect() {
       let coped
-      coped = copy(DATA.beforeFilter)
-      if (this.filterNow == 0) {
-        DATA.ctx.put(DATA.beforeFilter)
-      } else {
-        DATA.ctx.put(coped)
-        DATA.ctx[this.filterList[this.filterNow].name]()
-      }
+      this.$nextTick(function() {
+        coped = copy(DATA.beforeFilter)
+        if (this.filterNow == 0) {
+          DATA.ctx.put(DATA.beforeFilter)
+        } else {
+          DATA.ctx.put(coped)
+          DATA.ctx[this.filterList[this.filterNow].name]()
+        }
+      })
     },
 
     // mask
@@ -1072,8 +1074,7 @@ export default {
         } else {
           if (left < 0) {
             this.textL = 0
-          }
-          if (left > moveL) {
+          } else {
             this.textL = moveL
           }
         }
@@ -1082,8 +1083,7 @@ export default {
         } else {
           if (top < 0) {
             this.textT = 0
-          }
-          if (top > moveT) {
+          } else {
             this.textT = moveT
           }
         }
