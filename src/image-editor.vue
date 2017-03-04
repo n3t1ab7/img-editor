@@ -13,8 +13,8 @@
         </div>
         <a class="main-btn download" @click="download">导出</a>
         <a class="main-btn reset" @click="reset">重置</a>
-        <a class="main-btn restore" @click="restore"><i class="icon">&#xe6d2;</i></a>
-        <a class="main-btn undo" @click="undo"><i class="icon">&#xe69a;</i></a>
+        <a class="main-btn restore" @click="stage('restore')"><i class="icon">&#xe6d2;</i></a>
+        <a class="main-btn undo" @click="stage('undo')"><i class="icon">&#xe69a;</i></a>
         <a class="main-btn demo" @click="demo">使用示例图片</a>
         <label class="main-btn open">打开
           <input type="file" style="visibility:hidden;display:block;width:1;height:0" @change="open">
@@ -181,6 +181,7 @@ import {
 }
 from './libs/utils.js'
 import Ctx from './libs/Ctx.js'
+import TimeMachine from './libs/TimeMachine.js'
 
 import List from './components/select.vue'
 import Box from './components/box.vue'
@@ -197,14 +198,14 @@ import mosaicList from './configs/mosaic-list.json'
 import filterList from './configs/filter-list.json'
 
 let DATA = {
-  initData: null,
-  timeMachine: [],
-  nowStage: -1,
+  timeMachine: null,
   ctx: null,
   mosaicCtx: null,
   beforeBlur: null,
   beforeFilter: null
 }
+
+window.DATA = DATA
 
 export default {
   name: 'ImageEditor',
@@ -484,9 +485,7 @@ export default {
       img.onload = () => {
         natureW = img.width
         natureH = img.height
-        if (natureW > this.maxCanvasW) {
-          scale = natureW / this.maxCanvasW
-        }
+        if (natureW > this.maxCanvasW) scale = natureW / this.maxCanvasW
         this.canvasW = natureW / scale
         this.canvasH = natureH / scale
         this.$nextTick(function() {
@@ -495,7 +494,8 @@ export default {
           DATA.ctx.ctx.scale(1 / scale, 1 / scale);
           DATA.ctx.put(img)
           DATA.ctx.ctx.restore()
-          DATA.initData = DATA.ctx.get()
+          DATA.timeMachine = new TimeMachine(DATA.ctx)
+          DATA.timeMachine.add()
           this.reset()
           this.canPaint = true
         })
@@ -520,18 +520,10 @@ export default {
     // text
     toggleText() {
       if (!this.canPaint) return false
-      if (this.showMosaic) {
-        this.paintMosaic()
-      }
-      if (this.showBlur) {
-        this.paintBlur()
-      }
-      if (this.showFilter) {
-        this.paintFilter()
-      }
-      if (this.showFigure) {
-        this.paintFigure()
-      }
+      if (this.showMosaic) this.paintMosaic()
+      if (this.showBlur) this.paintBlur()
+      if (this.showFilter) this.paintFilter()
+      if (this.showFigure) this.paintFigure()
       this.resetFunc()
       this.showText = true
       this.textText = this.textInitText
@@ -597,24 +589,7 @@ export default {
         let shadowY = this.shadowY
         DATA.ctx.text(text, l, t, color, fz, fm, alpha, shadowBlur, shadowColor, shadowX, shadowY)
         this.url = DATA.ctx.url()
-        this.autoStage()
-        DATA.timeMachine.push({
-          type: 'text',
-          detail: {
-            l,
-            t,
-            text,
-            color,
-            fz,
-            fm,
-            alpha,
-            shadowBlur,
-            shadowColor,
-            shadowX,
-            shadowY
-          }
-        })
-        DATA.nowStage++
+        DATA.timeMachine.add()
       }
     },
 
@@ -639,18 +614,10 @@ export default {
     toggleClip() {
       if (!this.canPaint) return false
       this.url = DATA.ctx.url()
-      if (this.showMosaic) {
-        this.paintMosaic()
-      }
-      if (this.showText && this.textContenteditable) {
-        this.paintText()
-      }
-      if (this.showBlur) {
-        this.paintBlur()
-      }
-      if (this.showFigure) {
-        this.paintFigure()
-      }
+      if (this.showMosaic) this.paintMosaic()
+      if (this.showText && this.textContenteditable) this.paintText()
+      if (this.showBlur) this.paintBlur()
+      if (this.showFigure) this.paintFigure()
       this.resetFunc()
       this.showClip = true
     },
@@ -663,12 +630,8 @@ export default {
     },
 
     downloadClip() {
-      if (this.clipNow == 0) {
-        DATA.ctx.downloadRect(this.clipL, this.clipT, this.clipW, this.clipH)
-      }
-      if (this.clipNow == 1) {
-        DATA.ctx.downloadArc(this.clipW, this.clipH, this.clipL, this.clipT)
-      }
+      if (this.clipNow == 0) DATA.ctx.downloadRect(this.clipL, this.clipT, this.clipW, this.clipH)
+      if (this.clipNow == 1) DATA.ctx.downloadArc(this.clipW, this.clipH, this.clipL, this.clipT)
     },
 
     resetClip() {
@@ -684,15 +647,9 @@ export default {
     // blur
     toggleBlur() {
       if (!this.canPaint) return false
-      if (this.showMosaic) {
-        this.paintMosaic()
-      }
-      if (this.showText && this.textContenteditable) {
-        this.paintText()
-      }
-      if (this.showFigure) {
-        this.paintFigure()
-      }
+      if (this.showMosaic) this.paintMosaic()
+      if (this.showText && this.textContenteditable) this.paintText()
+      if (this.showFigure) this.paintFigure()
       this.resetFunc()
       this.showBlur = true
       DATA.beforeBlur = DATA.ctx.get()
@@ -707,14 +664,7 @@ export default {
 
     paintBlur() {
       this.url = DATA.ctx.url()
-      this.autoStage()
-      DATA.timeMachine.push({
-        type: 'blur',
-        detail: {
-          r: Math.floor(this.blur / this.blurRation)
-        }
-      })
-      DATA.nowStage++
+      DATA.timeMachine.add()
     },
 
     resetBlur() {
@@ -725,15 +675,9 @@ export default {
     // mosaic
     toggleMosaic() {
       if (!this.canPaint) return false
-      if (this.showText && this.textContenteditable) {
-        this.paintText()
-      }
-      if (this.showBlur) {
-        this.paintBlur()
-      }
-      if (this.showFigure) {
-        this.paintFigure()
-      }
+      if (this.showText && this.textContenteditable) this.paintText()
+      if (this.showBlur) this.paintBlur()
+      if (this.showFigure) this.paintFigure()
       this.resetFunc()
       this.showMosaic = true
       this.setMosaic(this.mosaicList[this.mosaicNow].value)
@@ -761,25 +705,9 @@ export default {
     },
 
     paintMosaic() {
-      let v = this.mosaicList[this.mosaicNow].value
-      let l = this.mosaicL
-      let t = this.mosaicT
-      let w = this.mosaicW
-      let h = this.mosaicH
-      DATA.ctx.mosaic(v, l, t, w, h)
+      DATA.ctx.mosaic(this.mosaicList[this.mosaicNow].value, this.mosaicL, this.mosaicT, this.mosaicW, this.mosaicH)
+      DATA.timeMachine.add()
       this.url = DATA.ctx.url()
-      this.autoStage()
-      DATA.timeMachine.push({
-        type: 'mosaic',
-        detail: {
-          l,
-          t,
-          w,
-          h,
-          v
-        }
-      })
-      DATA.nowStage++
     },
 
     resetMosaic() {
@@ -794,15 +722,9 @@ export default {
 
     toggleFigure() {
       if (!this.canPaint) return false
-      if (this.showText && this.textContenteditable) {
-        this.paintText()
-      }
-      if (this.showBlur) {
-        this.paintBlur()
-      }
-      if (this.showMosaic) {
-        this.paintMosaic()
-      }
+      if (this.showText && this.textContenteditable) this.paintText()
+      if (this.showBlur) this.paintBlur()
+      if (this.showMosaic) this.paintMosaic()
       this.resetFunc()
       this.showFigure = true
     },
@@ -823,45 +745,14 @@ export default {
     },
 
     paintFigure() {
-      this.autoStage()
       let color = this.figureColors.hex
       let alpha = this.figureAlpha
       if (this.figureNow == 0) {
-        let l = this.figureL
-        let t = this.figureT
-        let w = this.figureW
-        let h = this.figureH
-        DATA.ctx.rect(l, t, w, h, color, alpha)
-        DATA.timeMachine.push({
-          type: 'rect',
-          detail: {
-            t,
-            l,
-            w,
-            h,
-            color,
-            alpha
-          }
-        })
+        DATA.ctx.rect(this.figureL, this.figureT, this.figureW, this.figureH, color, alpha)
       } else {
-        let x = this.figureL + this.figureW / 2
-        let y = this.figureT + this.figureH / 2
-        let a = this.figureW / 2
-        let b = this.figureH / 2
-        DATA.ctx.arc(x, y, a, b, color, alpha)
-        DATA.timeMachine.push({
-          type: 'arc',
-          detail: {
-            x,
-            y,
-            a,
-            b,
-            color,
-            alpha,
-          }
-        })
+        DATA.ctx.arc(this.figureL + this.figureW / 2, this.figureT + this.figureH / 2, this.figureW / 2, this.figureH / 2, color, alpha)
       }
-      DATA.nowStage++
+      DATA.timeMachine.add()
     },
 
     resetFigure() {
@@ -879,18 +770,10 @@ export default {
     // filter
     toggleFilter() {
       if (!this.canPaint) return false
-      if (this.showText && this.textContenteditable) {
-        this.paintText()
-      }
-      if (this.showBlur) {
-        this.paintBlur()
-      }
-      if (this.showFigure) {
-        this.paintFigure()
-      }
-      if (this.showMosaic) {
-        this.paintMosaic()
-      }
+      if (this.showText && this.textContenteditable) this.paintText()
+      if (this.showBlur) this.paintBlur()
+      if (this.showFigure) this.paintFigure()
+      if (this.showMosaic) this.paintMosaic()
       this.resetFunc()
       this.showFilter = true
       DATA.beforeFilter = DATA.ctx.get()
@@ -898,15 +781,7 @@ export default {
 
     paintFilter() {
       this.url = DATA.ctx.url()
-      this.autoStage()
-      let name = this.filterList[this.filterNow].name
-      DATA.timeMachine.push({
-        type: 'filter',
-        detail: {
-          name
-        }
-      })
-      DATA.nowStage++
+      DATA.timeMachine.add()
     },
 
     resetFilter() {
@@ -946,112 +821,44 @@ export default {
 
     // reset and download
     resetFunc() {
-      if (this.showText) {
-        this.resetText()
-      }
-      if (this.showClip) {
-        this.resetClip()
-      }
-      if (this.showBlur) {
-        this.resetBlur()
-      }
-      if (this.showMosaic) {
-        this.resetMosaic()
-      }
-      if (this.showFigure) {
-        this.resetFigure()
-      }
-      if (this.showFilter) {
-        this.resetFilter()
-      }
+      if (this.showText) this.resetText()
+      if (this.showClip) this.resetClip()
+      if (this.showBlur) this.resetBlur()
+      if (this.showMosaic) this.resetMosaic()
+      if (this.showFigure) this.resetFigure()
+      if (this.showFilter) this.resetFilter()
     },
 
-    autoStage() {
-      if ((DATA.timeMachine.length - DATA.nowStage) !== 1) {
-        let popCount = DATA.timeMachine.length - 1 - DATA.nowStage
-        let i
-        for (i = 0; i < popCount; i++) {
-          DATA.timeMachine.pop()
-        }
-      }
-    },
-
-    undo() {
-      let i
-      if (this.showBlur) {
-        DATA.ctx.put(DATA.beforeBlur)
-      }
-      if (this.showFilter) {
-        DATA.ctx.put(DATA.beforeFilter)
-      }
+    stage(name) {
+      if (this.showBlur) DATA.ctx.put(DATA.beforeBlur)
+      if (this.showFilter) DATA.ctx.put(DATA.beforeFilter)
       if (this.showText || this.showClip || this.showBlur || this.showMosaic || this.showFigure || this.showFilter) {
         this.resetFunc()
         return
       }
-      if (DATA.nowStage == -1) {
-        return
+      if (name == 'undo') {
+        DATA.ctx.put(DATA.timeMachine.undo())
       } else {
-        this.resetFunc()
-        DATA.ctx.put(DATA.initData)
-        DATA.nowStage--;
-        for (i = 0; i <= DATA.nowStage; i++) {
-          this.repaint(DATA.timeMachine[i])
-        }
-        this.url = DATA.ctx.url()
-      }
-    },
-
-    restore() {
-      if (DATA.nowStage + 1 == DATA.timeMachine.length) return
-      DATA.nowStage++;
-      this.repaint(DATA.timeMachine[DATA.nowStage])
-      this.url = DATA.ctx.url()
-    },
-
-    repaint(stage) {
-      let type = stage.type
-      let detail = stage.detail
-      if (type == 'text') {
-        DATA.ctx.text(detail.text, detail.l, detail.t, detail.color, detail.fz, detail.fm, detail.alpha, detail.shadowBlur, detail.shadowColor, detail.shadowX, detail.shadowY)
-      }
-      if (type == 'blur') {
-        DATA.ctx.blur(detail.r)
-      }
-      if (type == 'filter') {
-        DATA.ctx[detail.name]()
-      }
-      if (type == 'mosaic') {
-        DATA.ctx.mosaic(detail.v, detail.l, detail.t, detail.w, detail.h)
-      }
-      if (type == 'rect') {
-        DATA.ctx.rect(detail.l, detail.t, detail.w, detail.h, detail.color, detail.alpha)
-      }
-      if (type == 'arc') {
-        DATA.ctx.arc(detail.x, detail.y, detail.a, detail.b, detail.color, detail.alpha)
+        DATA.ctx.put(DATA.timeMachine.restore())
       }
     },
 
     reset() {
       if (!this.canPaint) return false
       this.resetFunc()
-      DATA.ctx.put(DATA.initData)
-      DATA.mosaicCtx = null
       this.url = null
       this.mosaicUrl = null
+      DATA.ctx.put(DATA.timeMachine.init())
+      DATA.timeMachine.reset()
+      DATA.mosaicCtx = null
       DATA.beforeBlur = null
       DATA.beforeFilter = null
-      DATA.timeMachine = []
-      DATA.nowStage = -1
     },
 
     download() {
       if (!this.canPaint) return false
-      if (this.showMosaic) {
-        this.paintMosaic()
-      }
-      if (this.showFigure) {
-        this.paintFigure()
-      }
+      if (this.showMosaic) this.paintMosaic()
+      if (this.showFigure) this.paintFigure()
       DATA.ctx.downloadRect()
     }
   },
