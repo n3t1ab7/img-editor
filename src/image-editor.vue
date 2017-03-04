@@ -4,17 +4,17 @@
     <div class="toolbar-wrapper" :style="toolWrapperSty">
       <div class="toolbar funcbar" :style="funcSty">
         <div class="menu">
-          <a @click="toggleText"><i class="icon">&#xe633;</i>文本</a>
-          <a @click="toggleClip"><i class="icon">&#xe600;</i>裁剪</a>
-          <a @click="toggleBlur"><i class="icon">&#xe67d;</i>模糊</a>
-          <a @click="toggleMosaic"><i class="icon">&#xe6b3;</i>马赛克</a>
-          <a @click="toggleFigure"><i class="icon">&#xe605;</i>图形</a>
-          <a @click="toggleFilter"><i class="icon">&#xe601;</i>滤镜</a>
+          <a @click="toggleText"><i class="icon icon-text"></i>文本</a>
+          <a @click="toggleClip"><i class="icon icon-clip"></i>裁剪</a>
+          <a @click="toggleBlur"><i class="icon icon-blur"></i>模糊</a>
+          <a @click="toggleMosaic"><i class="icon icon-mosaic"></i>马赛克</a>
+          <a @click="toggleFigure"><i class="icon icon-figure"></i>图形</a>
+          <a @click="toggleFilter"><i class="icon icon-filter"></i>滤镜</a>
         </div>
         <a class="main-btn download" @click="download">导出</a>
         <a class="main-btn reset" @click="reset">重置</a>
-        <a class="main-btn restore" @click="stage('restore')"><i class="icon">&#xe6d2;</i></a>
-        <a class="main-btn undo" @click="stage('undo')"><i class="icon">&#xe69a;</i></a>
+        <a class="main-btn restore" @click="stage('restore')"><i class="icon icon-restore"></i></a>
+        <a class="main-btn undo" @click="stage('undo')"><i class="icon icon-undo"></i></a>
         <a class="main-btn demo" @click="demo">使用示例图片</a>
         <label class="main-btn open">打开
           <input type="file" style="visibility:hidden;display:block;width:1;height:0" @change="open">
@@ -830,6 +830,7 @@ export default {
     },
 
     stage(name) {
+      if (!this.canPaint) return false
       if (this.showBlur) DATA.ctx.put(DATA.beforeBlur)
       if (this.showFilter) DATA.ctx.put(DATA.beforeFilter)
       if (this.showText || this.showClip || this.showBlur || this.showMosaic || this.showFigure || this.showFilter) {
