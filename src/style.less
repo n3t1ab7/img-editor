@@ -30,6 +30,10 @@
   content: "\e69a";
 }
 
+.icon-drop::before {
+  content: "\e624";
+}
+
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
   -webkit-appearance: none !important;
@@ -331,7 +335,7 @@ input {
         text-align: center;
         transform: translateX(-50%) translateY(-50%);
         color: #ada4a4;
-        .drop-icon {
+        .icon-drop::before {
           font-size: 60px;
         }
       }

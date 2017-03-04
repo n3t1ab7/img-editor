@@ -156,7 +156,7 @@
       <canvas :width="canvasW" :height="canvasH" ref="canvas"></canvas>
       <div class="mask" :style="editSty" @drop.prevent="drop" @click="maskClick">
         <div v-show="!canPaint" class="drop-notice">
-          <i class="icon drop-icon">&#xe624;</i>
+          <i class="icon icon-drop"></i>
           <p>拖放图片到此</p>
         </div>
         <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" @keypress="textKeyPress" draggable="false" v-model="textText" ref="text"></textarea>
