@@ -397,7 +397,7 @@ export default {
         top: this.textT + 'px',
         color: this.textColors.hex,
         width: this.textW + 'px',
-        height: this.textFz + this.textBorder * 2 + 'px',
+        height: Number(this.textFz) + this.textBorder * 2 + 'px',
         borderW: this.textBorder + 'px',
         fontSize: this.textFz + 'px',
         lineHeight: this.textFz + 'px',
@@ -578,9 +578,9 @@ export default {
       if (this.textContenteditable) {
         let text = this.textText
         let l = this.textL + this.textBorder
-        let t = this.textT + this.textBorder + this.textFz
+        let t = this.textT + this.textBorder + Number(this.textFz)
         let color = this.textColors.hex
-        let fz = this.textFz
+        let fz = Number(this.textFz)
         let fm = this.textFmList[this.textFmNow].value
         let alpha = this.textAlpha
         let shadowBlur = this.shadowBlur
