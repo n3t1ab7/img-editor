@@ -159,7 +159,7 @@
           <i class="icon icon-drop"></i>
           <p>拖放图片到此</p>
         </div>
-        <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" @keypress="textKeyPress" draggable="false" v-model="textText" ref="text"></textarea>
+        <textarea :class="textCla" class="textarea" :style="textSty" :readonly="!textContenteditable" @mousedown="textMouseDown" @dblclick="textDouble" @input="textInput" draggable="false" ref="text" v-model="textText"></textarea>
         <Box :show="showClip" :width="clipW" :height="clipH" :left="clipL" :top="clipT" :borderW="clipBorderW" :canvasW="canvasW" :canvasH="canvasH" :canDrag="clipCanDrag" :canvas="$refs.canvas" @change="boxChange">
           <div :style="clipSty"></div>
         </Box>
@@ -177,6 +177,7 @@
 import {
   getElemOffset,
   getPointerToElem,
+  maxLenOfStrings,
   copy
 }
 from './libs/utils.js'
@@ -284,14 +285,15 @@ export default {
       //text state
       textContenteditable: false,
       textCanDrag: false,
-      textInitText: '双击编辑',
-      textText: '',
+      textTextGroup: [],
+      textText: '双击编辑',
       textMinW: 100,
       textToPointer: null,
       textShowColorPicker: false,
       textShowShadowColorPicker: false,
       textFmList: fmList,
       textFmNow: 0,
+      textLine: 1,
 
       // clip state
       clipCanDrag: false,
@@ -326,29 +328,11 @@ export default {
 
   watch: {
     textFz(val, old) {
-      let beyondW, beyondH
-      this.textW = DATA.ctx.textW(
-        this.textText, this.textFz, this.textFm, this.textMinW) + (this.textBorder * 2)
-      this.$nextTick(function() {
-        beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
-        beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.canvasH
-        if (beyondW > 0 || beyondH > 0) {
-          this.textFz = old
-        }
-      })
+      this.backToOld(val, old, 'fz')
     },
 
     textFmNow(val, old) {
-      let beyondW, beyondH
-      this.textW = DATA.ctx.textW(
-        this.textText, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
-      this.$nextTick(function() {
-        beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
-        beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.canvasH
-        if (beyondW > 0 || beyondH > 0) {
-          this.textFmNow = old
-        }
-      })
+      this.backToOld(val, old, 'fm')
     }
   },
 
@@ -397,7 +381,7 @@ export default {
         top: this.textT + 'px',
         color: this.textColors.hex,
         width: this.textW + 'px',
-        height: Number(this.textFz) + this.textBorder * 2 + 'px',
+        height: this.textTextGroup.length > 0 ? (Number(this.textFz) + this.textBorder * 2) * this.textTextGroup.length + 'px' : (Number(this.textFz) + this.textBorder * 2) + 'px',
         borderW: this.textBorder + 'px',
         fontSize: this.textFz + 'px',
         lineHeight: this.textFz + 'px',
@@ -526,8 +510,7 @@ export default {
       if (this.showFigure) this.paintFigure()
       this.resetFunc()
       this.showText = true
-      this.textText = this.textInitText
-      this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
+      this.textW = DATA.ctx.textW(maxLenOfStrings(this.textTextGroup), this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
     },
 
     textMouseDown(e) {
@@ -537,23 +520,31 @@ export default {
 
     textDouble() {
       this.textContenteditable = true
+      this.textTextGroup = []
       this.textText = ''
-      this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
-    },
-
-    textKeyPress(e) {
-      if (e.key == 'Enter') e.preventDefault()
+      this.textW = DATA.ctx.textW(maxLenOfStrings(this.textTextGroup), this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
     },
 
     textInput() {
-      let beyond, countWillRemove
-      this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
+      let beyond, maxString
+      this.textTextGroup = this.textText.split('\n')
+      maxString = maxLenOfStrings(this.textTextGroup)
+      this.textW = DATA.ctx.textW(maxString, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
+    },
+
+    backToOld(val, old, type) {
+      let beyondW, beyondH
+      this.textW = DATA.ctx.textW(maxLenOfStrings(this.textTextGroup), this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
       this.$nextTick(function() {
-        beyond = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
-        if (beyond > 0) {
-          countWillRemove = Math.floor((beyond / (this.textW / this.textText.length)))
-          this.textText = this.textText.slice(0, this.textText.length - countWillRemove - 1)
-          this.textW = DATA.ctx.textW(this.textText, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
+        beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
+        beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.canvasH
+        if (beyondW > 0 || beyondH > 0) {
+          if (type == 'fz') {
+            this.textFz = old
+          }
+          if (type == 'fm') {
+            this.textFmNow = old
+          }
         }
       })
     },
@@ -576,7 +567,6 @@ export default {
 
     paintText() {
       if (this.textContenteditable) {
-        let text = this.textText
         let l = this.textL + this.textBorder
         let t = this.textT + this.textBorder + Number(this.textFz)
         let color = this.textColors.hex
@@ -587,7 +577,10 @@ export default {
         let shadowColor = this.shadowColors.hex
         let shadowX = this.shadowX
         let shadowY = this.shadowY
-        DATA.ctx.text(text, l, t, color, fz, fm, alpha, shadowBlur, shadowColor, shadowX, shadowY)
+        let i
+        for (i = 0; i < this.textTextGroup.length; i++) {
+          DATA.ctx.text(this.textTextGroup[i], l, t + i * Number(this.textFz), color, fz, fm, alpha, shadowBlur, shadowColor, shadowX, shadowY)
+        }
         this.url = DATA.ctx.url()
         DATA.timeMachine.add()
       }
@@ -596,7 +589,8 @@ export default {
     resetText() {
       this.showText = false
       this.textContenteditable = false
-      this.textText = ""
+      this.textTextGroup = []
+      this.textText = '双击编辑'
       this.textL = 10
       this.textT = 10
       this.textColors.hex = '#ffffff'
@@ -608,6 +602,7 @@ export default {
       this.shadowX = 0
       this.shadowBlur = 0
       this.textAlpha = 1
+      this.textLine = 1
     },
 
     // clip
