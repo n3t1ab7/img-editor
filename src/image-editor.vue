@@ -206,8 +206,6 @@ let DATA = {
   beforeFilter: null
 }
 
-window.DATA = DATA
-
 export default {
   name: 'ImageEditor',
 
@@ -235,7 +233,7 @@ export default {
       textL: 10,
       textT: 10,
       textW: 0,
-      textFz: 22,
+      textFz: 28,
       textBorder: 2,
       textColors: {
         hex: "#ffffff"
@@ -287,7 +285,7 @@ export default {
       textCanDrag: false,
       textTextGroup: [],
       textText: '双击编辑',
-      textMinW: 100,
+      textMinW: 130,
       textToPointer: null,
       textShowColorPicker: false,
       textShowShadowColorPicker: false,
@@ -381,7 +379,7 @@ export default {
         top: this.textT + 'px',
         color: this.textColors.hex,
         width: this.textW + 'px',
-        height: this.textTextGroup.length > 0 ? (Number(this.textFz) + this.textBorder * 2) * this.textTextGroup.length + 'px' : (Number(this.textFz) + this.textBorder * 2) + 'px',
+        height: this.textTextGroup.length > 0 ? (Number(this.textFz) * this.textTextGroup.length + this.textBorder * 2) + 'px' : (Number(this.textFz) + this.textBorder * 2) + 'px',
         borderW: this.textBorder + 'px',
         fontSize: this.textFz + 'px',
         lineHeight: this.textFz + 'px',
@@ -595,7 +593,7 @@ export default {
       this.textT = 10
       this.textColors.hex = '#ffffff'
       this.shadowColors.hex = '#000000'
-      this.textFz = 22
+      this.textFz = 28
       this.textFmNow = 0
       this.textShowColorPicker = false
       this.shadowY = 0
