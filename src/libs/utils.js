@@ -43,20 +43,6 @@ let getPointerToElem = function(ev, elem) {
   }
 }
 
-let maxLenOfStrings = function(strings) {
-  let max = null
-  let len = strings.length
-  let i
-  for (i = 0; i < len; i++) {
-    if (max === null) {
-      max = strings[i]
-    } else if (strings[i].length > max.length) {
-      max = strings[i]
-    }
-  }
-  return max
-}
-
 let copy = function(data) {
   var temp = new ImageData(data.width, data.height)
   temp.data.set(data.data)
@@ -66,6 +52,5 @@ let copy = function(data) {
 export {
   getElemOffset,
   getPointerToElem,
-  maxLenOfStrings,
   copy
 }

@@ -177,7 +177,6 @@
 import {
   getElemOffset,
   getPointerToElem,
-  maxLenOfStrings,
   copy
 }
 from './libs/utils.js'
@@ -508,7 +507,7 @@ export default {
       if (this.showFigure) this.paintFigure()
       this.resetFunc()
       this.showText = true
-      this.textW = DATA.ctx.textW(maxLenOfStrings(this.textTextGroup), this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
+      this.textW = DATA.ctx.textGroupW(this.textTextGroup, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
     },
 
     textMouseDown(e) {
@@ -520,19 +519,18 @@ export default {
       this.textContenteditable = true
       this.textTextGroup = []
       this.textText = ''
-      this.textW = DATA.ctx.textW(maxLenOfStrings(this.textTextGroup), this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
+      this.textW = DATA.ctx.textGroupW(this.textTextGroup, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
     },
 
     textInput() {
       let beyond, maxString
       this.textTextGroup = this.textText.split('\n')
-      maxString = maxLenOfStrings(this.textTextGroup)
-      this.textW = DATA.ctx.textW(maxString, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
+      this.textW = DATA.ctx.textGroupW(this.textTextGroup, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
     },
 
     backToOld(val, old, type) {
       let beyondW, beyondH
-      this.textW = DATA.ctx.textW(maxLenOfStrings(this.textTextGroup), this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
+      this.textW = DATA.ctx.textGroupW(this.textTextGroup, this.textFz, this.textFmList[this.textFmNow].value, this.textMinW) + (this.textBorder * 2)
       this.$nextTick(function() {
         beyondW = getElemOffset(this.$refs.canvas, this.$refs.text).left + this.textW - this.canvasW
         beyondH = getElemOffset(this.$refs.canvas, this.$refs.text).top + parseFloat(this.textSty.height) - this.canvasH

@@ -123,12 +123,28 @@ export default class Ctx {
     this.ctx.closePath()
   }
 
-  textW(txt, fz, fm, min) {
+  textW(txt, fz, fm) {
     let result
     this.ctx.font = fz + 'px ' + fm
     result = this.ctx.measureText(txt).width
     result = result + 2
-    return result > min ? result : min
+    return result
+  }
+
+  textGroupW(group, fz, fm, min) {
+    let len = group.length,
+      i
+    let max = min
+    let now = null
+    for (i = 0; i < len; i++) {
+      now = this.textW(group[i], fz, fm, min)
+      if (max === null) {
+        max = now
+      } else if (now > max) {
+        max = now
+      }
+    }
+    return max
   }
 
   blur(r = 2, x = 0, y = 0, w = this.w, h = this.h) {
